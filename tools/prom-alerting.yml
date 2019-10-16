@@ -1,0 +1,24 @@
+groups:
+- name: super_legit_rule1
+  rules:
+ 
+  - alert: HighCPU
+    expr: percentage_cpu_percent_average > 0.5
+    for: 10s
+    labels:
+      severity: critical
+    annotations:
+      summary: "High CPU alert for {{ $labels.resource_name }}"
+      description: "Resource Group: {{ $labels.resource_group }}"
+
+- name: super_legit_rule2
+  rules:
+ 
+  - alert: TooMuchProcessing
+    expr: myapp_processed_ops_total > 0.5
+    for: 10s
+    labels:
+      severity: critical
+    annotations:
+      summary: "Too much work being done alert for {{ $labels.resource_name }}"
+      description: "Resource Group: {{ $labels.resource_group }}"
