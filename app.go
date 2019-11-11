@@ -119,7 +119,7 @@ func (r APISilenceRequest) Valid() bool {
 	return true
 }
 
-//Schedule.Valid returns true if the schedule is valid
+//Valid returns true if the schedule is valid
 func (s Schedule) Valid() bool {
 	if s == (Schedule{}) {
 		return false
@@ -135,7 +135,7 @@ func (s Schedule) Valid() bool {
 	return true
 }
 
-//Repeat.Valid  returns true if the schedule is valid
+//Valid returns true if the repeat is valid
 func (r Repeat) Valid() bool {
 	if r == (Repeat{}) {
 		return false
