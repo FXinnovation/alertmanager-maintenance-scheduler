@@ -75,12 +75,14 @@ type APISilenceRequest struct {
 	Schedule  Schedule                 `json:"schedule"`
 }
 
+// Schedule structure
 type Schedule struct {
 	StartTime string `json:"start_time"`
 	EndTime   string `json:"end_time"`
 	Repeat    Repeat `json:"repeat"`
 }
 
+// Repeat structure
 type Repeat struct {
 	Enabled  bool   `json:"enabled"`
 	Interval string `json:"interval"`
@@ -117,6 +119,7 @@ func (r APISilenceRequest) Valid() bool {
 	return true
 }
 
+//Schedule.Valid returns true if the schedule is valid
 func (s Schedule) Valid() bool {
 	if s == (Schedule{}) {
 		return false
@@ -132,6 +135,7 @@ func (s Schedule) Valid() bool {
 	return true
 }
 
+//Repeat.Valid  returns true if the schedule is valid
 func (r Repeat) Valid() bool {
 	if r == (Repeat{}) {
 		return false
