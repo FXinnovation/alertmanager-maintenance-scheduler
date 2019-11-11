@@ -1,3 +1,2 @@
 ---
-database: sample.db
 alertmanager_api: "http://localhost:9093/api/v2"

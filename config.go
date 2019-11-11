@@ -9,7 +9,6 @@ import (
 
 // Config the configuration of the application
 type Config struct {
-	Database        string `yaml:"database"`
 	AlertmanagerAPI string `yaml:"alertmanager_api"`
 }
 
