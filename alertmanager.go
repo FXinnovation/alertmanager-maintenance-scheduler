@@ -66,23 +66,6 @@ func (ac *AlertmanagerClient) doRequest(method, url string, requestBody io.Reade
 	return body, nil
 }
 
-// AlertmanagerAlert is the Alertmanager alert object returned by the API
-type AlertmanagerAlert struct {
-	Annotations map[string]string   `json:"annotations"`
-	EndsAt      string              `json:"endsAt"`
-	FingerPrint string              `json:"fingerprint"`
-	Receivers   []map[string]string `json:"receivers"`
-	StartsAt    string              `json:"startsAt"`
-	Status      struct {
-		InhibitedBy []string `json:"inhibitedBy"`
-		SilencedBy  []string `json:"silencedBy"`
-		State       string   `json:"state"`
-	} `json:"status"`
-	UpdatedAt    string            `json:"updatedAt"`
-	GeneratorURL string            `json:"generatorURL"`
-	Labels       map[string]string `json:"labels"`
-}
-
 // ListAlerts list all alerts
 func (ac *AlertmanagerClient) ListAlerts() (models.GettableAlerts, error) {
 	var alerts models.GettableAlerts
