@@ -122,7 +122,9 @@ func constructSilence(start, end string, matchers models.Matchers) (models.Silen
 	silence.EndsAt = &endDatetime
 
 	creator := "Maintenance Scheduler"
+	comment := ""
 	silence.CreatedBy = &creator
+	silence.Comment = &comment
 	silence.Matchers = matchers
 
 	return silence, nil
