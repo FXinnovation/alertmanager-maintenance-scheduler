@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -36,6 +37,33 @@ func (ac *AlertmanagerClient) constructURL(pairs ...string) (string, error) {
 	return u.String(), nil
 }
 
+func (ac *AlertmanagerClient) doRequest(method, url string, requestBody io.Reader) ([]byte, error) {
+	var client = &http.Client{}
+	req, err := http.NewRequest(method, url, requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create HTTP request: %s", err.Error())
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get response: %s", err.Error())
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("Alertmanager returned an HTTP error code: %d", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read response body: %s", err.Error())
+	}
+	return body, nil
+}
+
 // AlertmanagerAlert is the Alertmanager alert object returned by the API
 type AlertmanagerAlert struct {
 	Annotations map[string]string   `json:"annotations"`
@@ -62,22 +90,9 @@ func (ac *AlertmanagerClient) ListAlerts() ([]AlertmanagerAlert, error) {
 		return alerts, err
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	body, err := ac.doRequest("GET", url, nil)
 	if err != nil {
 		return alerts, fmt.Errorf("unable to create HTTP request: %s", err.Error())
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	var client = &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return alerts, fmt.Errorf("unable to get alerts: %s", err.Error())
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return alerts, fmt.Errorf("unable to read alerts: %s", err.Error())
 	}
 
 	err = json.Unmarshal(body, &alerts)
@@ -145,23 +160,9 @@ func (ac *AlertmanagerClient) CreateSilenceWith(start, end string, matchers []ma
 		return "", fmt.Errorf("unable to encode request body: %s", err.Error())
 	}
 
-	var client = &http.Client{}
-	req, err := http.NewRequest("POST", url, b)
+	body, err := ac.doRequest("POST", url, b)
 	if err != nil {
 		return "", fmt.Errorf("unable to create HTTP request: %s", err.Error())
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("unable to create silence: %s", err.Error())
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("unable to read response body: %s", err.Error())
 	}
 
 	var silenceResp AlertmanagerSilenceResponse
@@ -199,22 +200,9 @@ func (ac *AlertmanagerClient) GetSilenceWithID(uuid string) (AlertmanagerSilence
 		return silence, err
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	body, err := ac.doRequest("GET", url, nil)
 	if err != nil {
 		return silence, fmt.Errorf("unable to create HTTP request: %s", err.Error())
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	var client = &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return silence, fmt.Errorf("unable to delete silence: %s", err.Error())
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return silence, fmt.Errorf("unable to read silence: %s", err.Error())
 	}
 
 	err = json.Unmarshal(body, &silence)
@@ -233,22 +221,9 @@ func (ac *AlertmanagerClient) ListSilences() (AlertmanagerSilenceList, error) {
 		return silences, err
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	body, err := ac.doRequest("GET", url, nil)
 	if err != nil {
 		return silences, fmt.Errorf("unable to create HTTP request: %s", err.Error())
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	var client = &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return silences, fmt.Errorf("unable to get silences: %s", err.Error())
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return silences, fmt.Errorf("unable to read silences: %s", err.Error())
 	}
 
 	err = json.Unmarshal(body, &silences)
@@ -265,22 +240,10 @@ func (ac *AlertmanagerClient) ExpireSilenceWithID(uuid string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("DELETE", url, nil)
+	_, err = ac.doRequest("DELETE", url, nil)
 	if err != nil {
 		return fmt.Errorf("unable to create HTTP request: %s", err.Error())
 	}
-	req.Header.Set("Content-Type", "application/json")
-
-	var client = &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("unable to delete silence: %s", err.Error())
-	}
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("deleting silence return status code %s", resp.Status)
-	}
-	defer resp.Body.Close()
-
 	return nil
 }
 
