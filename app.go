@@ -10,6 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/prometheus/alertmanager/api/v2/models"
+
 	"github.com/gorilla/mux"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -68,11 +71,11 @@ func (a *App) getAlerts(w http.ResponseWriter, r *http.Request) {
 
 // APISilenceRequest request for silence
 type APISilenceRequest struct {
-	ID        string                   `json:"id"`
-	Comment   string                   `json:"comment"`
-	CreatedBy string                   `json:"createdBy"`
-	Matchers  []map[string]interface{} `json:"matchers"`
-	Schedule  Schedule                 `json:"schedule"`
+	ID        string          `json:"id"`
+	Comment   string          `json:"comment"`
+	CreatedBy string          `json:"createdBy"`
+	Matchers  models.Matchers `json:"matchers"`
+	Schedule  Schedule        `json:"schedule"`
 }
 
 // Schedule structure
@@ -97,16 +100,10 @@ func (r APISilenceRequest) Valid() bool {
 	if len(r.Matchers) < 1 {
 		return false
 	}
-	for _, m := range r.Matchers {
-		var valid = false
-		for k := range m {
-			if k == "isRegex" {
-				valid = true
-			}
-		}
-		if !valid {
-			return false
-		}
+
+	err := r.Matchers.Validate(strfmt.Default)
+	if err != nil {
+		return false
 	}
 
 	if r.Schedule.Valid() != true {

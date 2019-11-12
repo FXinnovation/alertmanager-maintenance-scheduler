@@ -10,16 +10,17 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/prometheus/alertmanager/api/v2/models"
 )
 
 // AlertmanagerAPI interface to hold api methods
 type AlertmanagerAPI interface {
 	ListAlerts() (models.GettableAlerts, error)
-	CreateSilenceWith(start, end string, matchers []map[string]interface{}) (string, error)
-	UpdateSilenceWith(uuid, start, end string, matchers []map[string]interface{}) (string, error)
-	GetSilenceWithID(uuid string) (AlertmanagerSilence, error)
-	ListSilences() (AlertmanagerSilenceList, error)
+	CreateSilenceWith(start, end string, matchers models.Matchers) (string, error)
+	UpdateSilenceWith(uuid, start, end string, matchers models.Matchers) (string, error)
+	GetSilenceWithID(uuid string) (models.GettableSilence, error)
+	ListSilences() (models.GettableSilences, error)
 	ExpireSilenceWithID(uuid string) error
 }
 
@@ -87,28 +88,11 @@ func (ac *AlertmanagerClient) ListAlerts() (models.GettableAlerts, error) {
 	return alerts, nil
 }
 
-// AlertmanagerSilence is the Alertmanager silence object returned by the API
-type AlertmanagerSilence struct {
-	ID     string `json:"id"`
-	Status struct {
-		State string `json:"state"`
-	} `json:"status"`
-	UpdatedAt string                   `json:"updatedAt"`
-	Comment   string                   `json:"comment"`
-	CreatedBy string                   `json:"createdBy"`
-	EndsAt    string                   `json:"endsAt"`
-	Matchers  []map[string]interface{} `json:"matchers"`
-	StartsAt  string                   `json:"startsAt"`
-}
-
-// AlertmanagerSilenceList list of silences
-type AlertmanagerSilenceList []AlertmanagerSilence
-
 // FilterExpired filters expired silences
-func FilterExpired(list AlertmanagerSilenceList) AlertmanagerSilenceList {
-	var out AlertmanagerSilenceList
+func FilterExpired(list models.GettableSilences) models.GettableSilences {
+	var out models.GettableSilences
 	for _, e := range list {
-		if e.Status.State != "expired" {
+		if *e.Status.State != "expired" {
 			out = append(out, e)
 		}
 	}
@@ -122,22 +106,39 @@ type AlertmanagerSilenceResponse struct {
 	Message   string `json:"message"`
 }
 
-func constructSilence(start, end string, matchers []map[string]interface{}) AlertmanagerSilence {
-	return AlertmanagerSilence{
-		StartsAt:  start,
-		EndsAt:    end,
-		CreatedBy: "Maintenance Scheduler",
-		Matchers:  matchers,
+func constructSilence(start, end string, matchers models.Matchers) (models.Silence, error) {
+	var silence models.Silence
+
+	startDatetime, err := strfmt.ParseDateTime(start)
+	if err != nil {
+		return silence, err
 	}
+	silence.StartsAt = &startDatetime
+
+	endDatetime, err := strfmt.ParseDateTime(end)
+	if err != nil {
+		return silence, err
+	}
+	silence.EndsAt = &endDatetime
+
+	creator := "Maintenance Scheduler"
+	silence.CreatedBy = &creator
+	silence.Matchers = matchers
+
+	return silence, nil
 }
 
 // CreateSilenceWith creates a silence
-func (ac *AlertmanagerClient) CreateSilenceWith(start, end string, matchers []map[string]interface{}) (string, error) {
+func (ac *AlertmanagerClient) CreateSilenceWith(start, end string, matchers models.Matchers) (string, error) {
 	url, err := ac.constructURL("silences")
 	if err != nil {
 		return "", err
 	}
-	var silence = constructSilence(start, end, matchers)
+
+	silence, err := constructSilence(start, end, matchers)
+	if err != nil {
+		return "", err
+	}
 
 	var b = new(bytes.Buffer)
 	err = json.NewEncoder(b).Encode(silence)
@@ -163,7 +164,7 @@ func (ac *AlertmanagerClient) CreateSilenceWith(start, end string, matchers []ma
 }
 
 // UpdateSilenceWith updates a silence
-func (ac *AlertmanagerClient) UpdateSilenceWith(uuid, start, end string, matchers []map[string]interface{}) (string, error) {
+func (ac *AlertmanagerClient) UpdateSilenceWith(uuid, start, end string, matchers models.Matchers) (string, error) {
 	err := ac.ExpireSilenceWithID(uuid)
 	if err != nil {
 		return "", err
@@ -177,8 +178,8 @@ func (ac *AlertmanagerClient) UpdateSilenceWith(uuid, start, end string, matcher
 }
 
 // GetSilenceWithID get the silence asked
-func (ac *AlertmanagerClient) GetSilenceWithID(uuid string) (AlertmanagerSilence, error) {
-	var silence AlertmanagerSilence
+func (ac *AlertmanagerClient) GetSilenceWithID(uuid string) (models.GettableSilence, error) {
+	var silence models.GettableSilence
 
 	url, err := ac.constructURL("silence", uuid)
 	if err != nil {
@@ -198,8 +199,8 @@ func (ac *AlertmanagerClient) GetSilenceWithID(uuid string) (AlertmanagerSilence
 }
 
 // ListSilences list all silences
-func (ac *AlertmanagerClient) ListSilences() (AlertmanagerSilenceList, error) {
-	var silences AlertmanagerSilenceList
+func (ac *AlertmanagerClient) ListSilences() (models.GettableSilences, error) {
+	var silences models.GettableSilences
 
 	url, err := ac.constructURL("silences")
 	if err != nil {
