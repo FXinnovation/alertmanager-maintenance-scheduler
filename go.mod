@@ -1,4 +1,4 @@
-module scm.dazzlingwrench.fxinnovation.com/fxinnovation-private/application-prometheus-maintenance-scheduler
+module github.com/FXinnovation/alertmanager-maintenance-scheduler
 
 go 1.12
 
