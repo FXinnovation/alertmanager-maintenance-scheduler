@@ -1,6 +1,5 @@
 alertmanager-maintenance-scheduler
 config.yml
-sample.db
 
 # ---> Go
 # Binaries for programs and plugins
