@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	confPath     = kingpin.Flag("config", "Path to config file.").Short('c').Required().String()
-	port         = kingpin.Flag("port", "Address to listen on for API").Default("8080").Short('p').Int()
-	genericError = 1
+	configFile    = kingpin.Flag("config.file", "Path to config file.").Short('c').Required().String()
+	listenAddress = kingpin.Flag("web.listen-address", "Address for the application to listen on").Default("8080").Short('p').Int()
+	genericError  = 1
 
 	requestScheduleReg = regexp.MustCompile(`^(h|d|w)?$`)
 )
@@ -293,7 +293,7 @@ func (a *App) expireSilence(w http.ResponseWriter, r *http.Request) {
 func main() {
 	kingpin.Parse()
 
-	appConf, err := loadConfig(*confPath)
+	appConf, err := loadConfig(*configFile)
 	if err != nil {
 		log.Printf("error loading config: %s\n", err.Error())
 		os.Exit(genericError)
@@ -317,8 +317,8 @@ func main() {
 	r.HandleFunc("/", indexHandler)
 	http.Handle("/", r)
 
-	log.Printf("Starting server on port %d\n", *port)
-	err = http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+	log.Printf("Starting server on port %d\n", *listenAddress)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", *listenAddress), nil)
 	if err != nil {
 		log.Printf("error running server: %s\n", err.Error())
 		os.Exit(genericError)
