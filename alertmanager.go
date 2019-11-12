@@ -20,7 +20,7 @@ type AlertmanagerAPI interface {
 	ExpireSilenceWithID(uuid string) error
 }
 
-// AlertmanagerClient receiver for methods calling the api
+// AlertmanagerClient is the concrete implementation of the client object for methods calling the Alertmanager API
 type AlertmanagerClient struct {
 	AlertManagerAPIURL string
 }
@@ -36,7 +36,7 @@ func (ac *AlertmanagerClient) constructURL(pairs ...string) (string, error) {
 	return u.String(), nil
 }
 
-// AlertmanagerAlert alert returned
+// AlertmanagerAlert is the Alertmanager alert object returned by the API
 type AlertmanagerAlert struct {
 	Annotations map[string]string   `json:"annotations"`
 	EndsAt      string              `json:"endsAt"`
@@ -87,7 +87,7 @@ func (ac *AlertmanagerClient) ListAlerts() ([]AlertmanagerAlert, error) {
 	return alerts, nil
 }
 
-// AlertmanagerSilence silence returned
+// AlertmanagerSilence is the Alertmanager silence object returned by the API
 type AlertmanagerSilence struct {
 	ID     string `json:"id"`
 	Status struct {
