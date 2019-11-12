@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/prometheus/alertmanager/api/v2/models"
 )
 
 // AlertmanagerAPI interface to hold api methods
 type AlertmanagerAPI interface {
-	ListAlerts() ([]AlertmanagerAlert, error)
+	ListAlerts() (models.GettableAlerts, error)
 	CreateSilenceWith(start, end string, matchers []map[string]interface{}) (string, error)
 	UpdateSilenceWith(uuid, start, end string, matchers []map[string]interface{}) (string, error)
 	GetSilenceWithID(uuid string) (AlertmanagerSilence, error)
@@ -82,8 +84,8 @@ type AlertmanagerAlert struct {
 }
 
 // ListAlerts list all alerts
-func (ac *AlertmanagerClient) ListAlerts() ([]AlertmanagerAlert, error) {
-	var alerts []AlertmanagerAlert
+func (ac *AlertmanagerClient) ListAlerts() (models.GettableAlerts, error) {
+	var alerts models.GettableAlerts
 
 	url, err := ac.constructURL("alerts")
 	if err != nil {
