@@ -189,7 +189,7 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		_, err = a.client.CreateSilenceWith(nextStart, nextEnd, silenceRequest.Matchers)
+		_, err = a.client.CreateSilenceWith(nextStart, nextEnd, silenceRequest)
 		if err != nil {
 			log.Println(err)
 			requestErr++

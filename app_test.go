@@ -23,12 +23,12 @@ func (m *MockAlertManagerClient) ListAlerts() (models.GettableAlerts, error) {
 	return args.Get(0).(models.GettableAlerts), args.Error(1)
 }
 
-func (m *MockAlertManagerClient) CreateSilenceWith(start, end string, matchers models.Matchers) (string, error) {
-	args := m.Called(start, end, matchers)
+func (m *MockAlertManagerClient) CreateSilenceWith(start, end string, request APISilenceRequest) (string, error) {
+	args := m.Called(start, end, request)
 	return args.Get(0).(string), args.Error(1)
 }
-func (m *MockAlertManagerClient) UpdateSilenceWith(uuid, start, end string, matchers models.Matchers) (string, error) {
-	args := m.Called(start, end, matchers)
+func (m *MockAlertManagerClient) UpdateSilenceWith(uuid, start, end string, request APISilenceRequest) (string, error) {
+	args := m.Called(start, end, request)
 	return args.Get(0).(string), args.Error(1)
 }
 func (m *MockAlertManagerClient) GetSilenceWithID(uuid string) (models.GettableSilence, error) {
@@ -159,7 +159,7 @@ func TestApp_createSilence(t *testing.T) {
 	client.On("CreateSilenceWith",
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("models.Matchers")).Return("1234", nil)
+		mock.AnythingOfType("APISilenceRequest")).Return("1234", nil)
 	app := App{
 		config: &Config{},
 		client: &client,

@@ -17,8 +17,8 @@ import (
 // AlertmanagerAPI interface to hold api methods
 type AlertmanagerAPI interface {
 	ListAlerts() (models.GettableAlerts, error)
-	CreateSilenceWith(start, end string, matchers models.Matchers) (string, error)
-	UpdateSilenceWith(uuid, start, end string, matchers models.Matchers) (string, error)
+	CreateSilenceWith(start, end string, request APISilenceRequest) (string, error)
+	UpdateSilenceWith(uuid, start, end string, request APISilenceRequest) (string, error)
 	GetSilenceWithID(uuid string) (models.GettableSilence, error)
 	ListSilences() (models.GettableSilences, error)
 	ExpireSilenceWithID(uuid string) error
@@ -106,7 +106,7 @@ type AlertmanagerSilenceResponse struct {
 	Message   string `json:"message"`
 }
 
-func constructSilence(start, end string, matchers models.Matchers) (models.Silence, error) {
+func constructSilence(start, end string, request APISilenceRequest) (models.Silence, error) {
 	var silence models.Silence
 
 	startDatetime, err := strfmt.ParseDateTime(start)
@@ -121,23 +121,21 @@ func constructSilence(start, end string, matchers models.Matchers) (models.Silen
 	}
 	silence.EndsAt = &endDatetime
 
-	creator := "Maintenance Scheduler"
-	comment := ""
-	silence.CreatedBy = &creator
-	silence.Comment = &comment
-	silence.Matchers = matchers
+	silence.CreatedBy = &request.CreatedBy
+	silence.Comment = &request.Comment
+	silence.Matchers = request.Matchers
 
 	return silence, nil
 }
 
 // CreateSilenceWith creates a silence
-func (ac *AlertmanagerClient) CreateSilenceWith(start, end string, matchers models.Matchers) (string, error) {
+func (ac *AlertmanagerClient) CreateSilenceWith(start, end string, request APISilenceRequest) (string, error) {
 	url, err := ac.constructURL("silences")
 	if err != nil {
 		return "", err
 	}
 
-	silence, err := constructSilence(start, end, matchers)
+	silence, err := constructSilence(start, end, request)
 	if err != nil {
 		return "", err
 	}
@@ -166,13 +164,13 @@ func (ac *AlertmanagerClient) CreateSilenceWith(start, end string, matchers mode
 }
 
 // UpdateSilenceWith updates a silence
-func (ac *AlertmanagerClient) UpdateSilenceWith(uuid, start, end string, matchers models.Matchers) (string, error) {
+func (ac *AlertmanagerClient) UpdateSilenceWith(uuid, start, end string, request APISilenceRequest) (string, error) {
 	err := ac.ExpireSilenceWithID(uuid)
 	if err != nil {
 		return "", err
 	}
 
-	silenceID, err := ac.CreateSilenceWith(start, end, matchers)
+	silenceID, err := ac.CreateSilenceWith(start, end, request)
 	if err != nil {
 		return "", err
 	}

@@ -139,12 +139,14 @@ func TestAlertmanagerClient_createSilenceWith(t *testing.T) {
 	value := "FakeApp"
 	isRegex := false
 
-	matchers := models.Matchers{
-		&models.Matcher{Name: &name, Value: &value, IsRegex: &isRegex},
+	request := APISilenceRequest{
+		Matchers: models.Matchers{
+			&models.Matcher{Name: &name, Value: &value, IsRegex: &isRegex},
+		},
 	}
 
 	want := "7d8eb77e-00f9-4e0e-9f20-047695569296"
-	got, err := ac.CreateSilenceWith("2019-11-01T22:12:33.533330795Z", "2019-11-01T23:11:44.603Z", matchers)
+	got, err := ac.CreateSilenceWith("2019-11-01T22:12:33.533330795Z", "2019-11-01T23:11:44.603Z", request)
 	if err != nil {
 		t.Errorf("unexpected error received: '%s'", err.Error())
 	}
