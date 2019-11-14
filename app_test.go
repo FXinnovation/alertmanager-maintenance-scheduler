@@ -363,7 +363,7 @@ func TestApp_getSilenceWithID(t *testing.T) {
     "state": "pending"
   },
   "updatedAt": "2019-10-29T15:16:35.232Z",
-  "comment": "Silence",
+  "comment": "silence",
   "createdBy": "api",
   "endsAt": "2019-11-01T23:11:44.603Z",
   "matchers": [
@@ -377,8 +377,8 @@ func TestApp_getSilenceWithID(t *testing.T) {
 }
 `
 	if ok, err := AreEqualJSON(rr.Body.String(), expected); !ok || err != nil {
-		t.Errorf("handler returned unexpected body\ngot: '%s'\nwant: '%s'\nerror: '%s'",
-			rr.Body.String(), expected, err.Error())
+		t.Errorf("handler returned unexpected body\ngot: '%s'\nwant: '%s'\nerror: '%v'",
+			rr.Body.String(), expected, err)
 	}
 }
 
