@@ -179,7 +179,7 @@ func (ac *AlertmanagerClient) UpdateSilenceWith(uuid, start, end string, matcher
 	return silenceID, nil
 }
 
-// GetSilenceWithID get the silence asked
+// GetSilenceWithID returns a silence with the specified ID
 func (ac *AlertmanagerClient) GetSilenceWithID(uuid string) (models.GettableSilence, error) {
 	var silence models.GettableSilence
 

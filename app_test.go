@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -16,26 +18,26 @@ type MockAlertManagerClient struct {
 	mock.Mock
 }
 
-func (m *MockAlertManagerClient) ListAlerts() ([]AlertmanagerAlert, error) {
+func (m *MockAlertManagerClient) ListAlerts() (models.GettableAlerts, error) {
 	args := m.Called()
-	return args.Get(0).([]AlertmanagerAlert), args.Error(1)
+	return args.Get(0).(models.GettableAlerts), args.Error(1)
 }
 
-func (m *MockAlertManagerClient) CreateSilenceWith(start, end string, matchers []map[string]interface{}) (string, error) {
+func (m *MockAlertManagerClient) CreateSilenceWith(start, end string, matchers models.Matchers) (string, error) {
 	args := m.Called(start, end, matchers)
 	return args.Get(0).(string), args.Error(1)
 }
-func (m *MockAlertManagerClient) UpdateSilenceWith(uuid, start, end string, matchers []map[string]interface{}) (string, error) {
+func (m *MockAlertManagerClient) UpdateSilenceWith(uuid, start, end string, matchers models.Matchers) (string, error) {
 	args := m.Called(start, end, matchers)
 	return args.Get(0).(string), args.Error(1)
 }
-func (m *MockAlertManagerClient) GetSilenceWithID(uuid string) (AlertmanagerSilence, error) {
+func (m *MockAlertManagerClient) GetSilenceWithID(uuid string) (models.GettableSilence, error) {
 	args := m.Called(uuid)
-	return args.Get(0).(AlertmanagerSilence), args.Error(1)
+	return args.Get(0).(models.GettableSilence), args.Error(1)
 }
-func (m *MockAlertManagerClient) ListSilences() (AlertmanagerSilenceList, error) {
+func (m *MockAlertManagerClient) ListSilences() (models.GettableSilences, error) {
 	args := m.Called()
-	return args.Get(0).(AlertmanagerSilenceList), args.Error(1)
+	return args.Get(0).(models.GettableSilences), args.Error(1)
 }
 func (m *MockAlertManagerClient) ExpireSilenceWithID(uuid string) error {
 	args := m.Called(uuid)
@@ -44,31 +46,43 @@ func (m *MockAlertManagerClient) ExpireSilenceWithID(uuid string) error {
 
 func Test_getAlerts(t *testing.T) {
 	client := MockAlertManagerClient{}
-	wanted := []AlertmanagerAlert{
+
+	fingerprint := "1ece099dde7bdc1b"
+	name := "web.hook"
+	receivers := []*models.Receiver{&models.Receiver{Name: &name}}
+	startsAt, _ := strfmt.ParseDateTime("2019-10-28T12:40:25.486-07:00")
+	endsAt, _ := strfmt.ParseDateTime("2019-10-28T12:46:25.486-07:00")
+	updatedAt, _ := strfmt.ParseDateTime("2019-10-28T12:43:25.492-07:00")
+	state := "active"
+
+	want := models.GettableAlerts{
 		{
 			Annotations: map[string]string{"description": "Resource Group: fake-rg-01", "summary": "High CPU alert for fake-vm-01"},
-			EndsAt:      "2019-10-28T12:46:25.486-07:00",
-			FingerPrint: "1ece099dde7bdc1b",
-			Receivers:   []map[string]string{{"name": "web.hook"}},
-			StartsAt:    "2019-10-28T12:40:25.486-07:00",
-			Status: struct {
-				InhibitedBy []string `json:"inhibitedBy"`
-				SilencedBy  []string `json:"silencedBy"`
-				State       string   `json:"state"`
-			}{InhibitedBy: make([]string, 0), SilencedBy: make([]string, 0), State: "active"},
-			UpdatedAt:    "2019-10-28T12:43:25.492-07:00",
-			GeneratorURL: "http://MacBook-Pro.local:9090/graph?g0.expr=percentage_cpu_percent_average+%3E+0.5\u0026g0.tab=1",
-			Labels: map[string]string{
-				"alertname":      "HighCPU",
-				"instance":       "localhost:2112",
-				"job":            "FakeApp",
-				"resource_group": "fake-rg-01",
-				"resource_name":  "fake-vm-01",
-				"severity":       "critical"},
+			EndsAt:      &endsAt,
+			Fingerprint: &fingerprint,
+			Receivers:   receivers,
+			StartsAt:    &startsAt,
+			Status: &models.AlertStatus{
+				InhibitedBy: make([]string, 0),
+				SilencedBy:  make([]string, 0),
+				State:       &state,
+			},
+			UpdatedAt: &updatedAt,
+			Alert: models.Alert{
+				GeneratorURL: "http://MacBook-Pro.local:9090/graph?g0.expr=percentage_cpu_percent_average+%3E+0.5\u0026g0.tab=1",
+				Labels: map[string]string{
+					"alertname":      "HighCPU",
+					"instance":       "localhost:2112",
+					"job":            "FakeApp",
+					"resource_group": "fake-rg-01",
+					"resource_name":  "fake-vm-01",
+					"severity":       "critical",
+				},
+			},
 		},
 	}
-	client.On("ListAlerts").Return(wanted, nil)
-	appli := App{
+	client.On("ListAlerts").Return(want, nil)
+	app := App{
 		config: &Config{},
 		client: &client,
 	}
@@ -77,13 +91,13 @@ func Test_getAlerts(t *testing.T) {
 
 	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(appli.getAlerts)
+	handler := http.HandlerFunc(app.getAlerts)
 
 	// Test the handler with the request and record the result
 	handler.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Wrong status code: got %v, want %v", status, http.StatusInternalServerError)
+		t.Errorf("wrong status code: got '%d', want '%d'", status, http.StatusInternalServerError)
 	}
 	expected := `
 [
@@ -119,10 +133,9 @@ func Test_getAlerts(t *testing.T) {
 ]
 `
 	if ok, err := AreEqualJSON(rr.Body.String(), expected); !ok || err != nil {
-		t.Errorf("handler returned unexpected body: got %v want %v, err: %v",
-			rr.Body.String(), expected, err)
+		t.Errorf("handler returned unexpected body\ngot: '%s'\nwant: '%s'\nerror: %s\n",
+			rr.Body.String(), expected, err.Error())
 	}
-
 }
 
 func AreEqualJSON(s1, s2 string) (bool, error) {
@@ -132,13 +145,12 @@ func AreEqualJSON(s1, s2 string) (bool, error) {
 	var err error
 	err = json.Unmarshal([]byte(s1), &o1)
 	if err != nil {
-		return false, fmt.Errorf("Error mashalling string 1 :: %s", err.Error())
+		return false, fmt.Errorf("error mashalling string 1: '%s'", err.Error())
 	}
 	err = json.Unmarshal([]byte(s2), &o2)
 	if err != nil {
-		return false, fmt.Errorf("Error mashalling string 2 :: %s", err.Error())
+		return false, fmt.Errorf("error mashalling string 2: '%s'", err.Error())
 	}
-
 	return reflect.DeepEqual(o1, o2), nil
 }
 
@@ -148,7 +160,7 @@ func TestApp_createSilence(t *testing.T) {
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("[]map[string]interface {}")).Return("1234", nil)
-	appli := App{
+	app := App{
 		config: &Config{},
 		client: &client,
 	}
@@ -181,18 +193,18 @@ func TestApp_createSilence(t *testing.T) {
 
 	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(appli.createSilence)
+	handler := http.HandlerFunc(app.createSilence)
 
 	// Test the handler with the request and record the result
 	handler.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Wrong status code: got %v, want %v", status, http.StatusOK)
+		t.Errorf("wrong status code: got '%d' want '%d'", status, http.StatusOK)
 	}
 	expected := `{"status":"success","message":"10/10 new silences created"}`
 	if ok, err := AreEqualJSON(rr.Body.String(), expected); !ok || err != nil {
-		t.Errorf("handler returned unexpected body: got %v want %v, err: %v",
-			rr.Body.String(), expected, err)
+		t.Errorf("handler returned unexpected body\ngot: '%s'\nwant: '%s'\nerror: '%s'",
+			rr.Body.String(), expected, err.Error())
 	}
 }
 
@@ -201,7 +213,7 @@ func TestApp_expireSilence(t *testing.T) {
 
 	client.On("ExpireSilenceWithID",
 		mock.AnythingOfType("string")).Return(nil)
-	appli := App{
+	app := App{
 		config: &Config{},
 		client: &client,
 	}
@@ -210,35 +222,48 @@ func TestApp_expireSilence(t *testing.T) {
 
 	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(appli.expireSilence)
+	handler := http.HandlerFunc(app.expireSilence)
 
 	// Test the handler with the request and record the result
 	handler.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Wrong status code: got %v, want %v", status, http.StatusInternalServerError)
+		t.Errorf("wrong status code: got '%d' want '%d'", status, http.StatusInternalServerError)
 	}
 
 }
 
 func TestApp_getAllSilences(t *testing.T) {
 	client := MockAlertManagerClient{}
-	wanted := AlertmanagerSilenceList{{
-		ID: "7d8eb77e-00f9-4e0e-9f20-047695569296",
-		Status: struct {
-			State string `json:"state"`
-		}{"pending"},
-		UpdatedAt: "2019-10-29T15:16:35.232Z",
-		Comment:   "Silence",
-		CreatedBy: "api",
-		EndsAt:    "2019-11-01T23:11:44.603Z",
-		Matchers: []map[string]interface{}{
-			{"name": "job", "value": "FakeApp", "isRegex": false},
+
+	id := "7d8eb77e-00f9-4e0e-9f20-047695569296"
+	state := "pending"
+	updatedAt, _ := strfmt.ParseDateTime("2019-10-29T15:16:35.232Z")
+	comment := "Silence"
+	createdBy := "api"
+	endsAt, _ := strfmt.ParseDateTime("2019-11-01T23:11:44.603Z")
+	startsAt, _ := strfmt.ParseDateTime("2019-11-01T22:12:33.533Z")
+	name := "job"
+	value := "FakeApp"
+	isRegex := false
+
+	want := models.GettableSilences{{
+		ID:        &id,
+		Status:    &models.SilenceStatus{State: &state},
+		UpdatedAt: &updatedAt,
+		Silence: models.Silence{
+			Comment:   &comment,
+			CreatedBy: &createdBy,
+			EndsAt:    &endsAt,
+			Matchers: models.Matchers{
+				&models.Matcher{Name: &name, Value: &value, IsRegex: &isRegex},
+			},
+			StartsAt: &startsAt,
 		},
-		StartsAt: "2019-11-01T22:12:33.533Z",
 	}}
-	client.On("ListSilences").Return(wanted, nil)
-	appli := App{
+
+	client.On("ListSilences").Return(want, nil)
+	app := App{
 		config: &Config{},
 		client: &client,
 	}
@@ -247,13 +272,13 @@ func TestApp_getAllSilences(t *testing.T) {
 
 	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(appli.getAllSilences)
+	handler := http.HandlerFunc(app.getAllSilences)
 
 	// Test the handler with the request and record the result
 	handler.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Wrong status code: got %v, want %v", status, http.StatusInternalServerError)
+		t.Errorf("wrong status code: got '%d' want '%d'", status, http.StatusInternalServerError)
 	}
 	expected := `
 [{
@@ -276,29 +301,45 @@ func TestApp_getAllSilences(t *testing.T) {
 }]
 `
 	if ok, err := AreEqualJSON(rr.Body.String(), expected); !ok || err != nil {
-		t.Errorf("handler returned unexpected body: got %v want %v, err: %v",
-			rr.Body.String(), expected, err)
+		t.Errorf("handler returned unexpected body\ngot: '%s'\nwant: '%s'\nerror: '%s'",
+			rr.Body.String(), expected, err.Error())
 	}
 }
 
 func TestApp_getSilenceWithID(t *testing.T) {
 	client := MockAlertManagerClient{}
-	wanted := AlertmanagerSilence{
-		ID: "7d8eb77e-00f9-4e0e-9f20-047695569296",
-		Status: struct {
-			State string `json:"state"`
-		}{"pending"},
-		UpdatedAt: "2019-10-29T15:16:35.232Z",
-		Comment:   "Silence",
-		CreatedBy: "api",
-		EndsAt:    "2019-11-01T23:11:44.603Z",
-		Matchers: []map[string]interface{}{
-			{"name": "job", "value": "FakeApp", "isRegex": false},
+
+	id := "7d8eb77e-00f9-4e0e-9f20-047695569296"
+	status := "pending"
+	updatedAt, _ := strfmt.ParseDateTime("2019-10-29T15:16:35.232Z")
+	endsAt, _ := strfmt.ParseDateTime("2019-11-01T23:11:44.603Z")
+	startsAt, _ := strfmt.ParseDateTime("2019-11-01T22:12:33.533Z")
+	comment := "silence"
+	createdBy := "api"
+	name := "job"
+	value := "FakeApp"
+	isRegex := false
+
+	want := models.GettableSilence{
+		ID:        &id,
+		Status:    &models.SilenceStatus{State: &status},
+		UpdatedAt: &updatedAt,
+		Silence: models.Silence{
+			Comment:   &comment,
+			CreatedBy: &createdBy,
+			EndsAt:    &endsAt,
+			Matchers: models.Matchers{
+				&models.Matcher{
+					Name:    &name,
+					Value:   &value,
+					IsRegex: &isRegex,
+				},
+			},
+			StartsAt: &startsAt,
 		},
-		StartsAt: "2019-11-01T22:12:33.533Z",
 	}
-	client.On("GetSilenceWithID", mock.AnythingOfType("string")).Return(wanted, nil)
-	appli := App{
+	client.On("GetSilenceWithID", mock.AnythingOfType("string")).Return(want, nil)
+	app := App{
 		config: &Config{},
 		client: &client,
 	}
@@ -307,13 +348,13 @@ func TestApp_getSilenceWithID(t *testing.T) {
 
 	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(appli.getSilenceWithID)
+	handler := http.HandlerFunc(app.getSilenceWithID)
 
 	// Test the handler with the request and record the result
 	handler.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Wrong status code: got %v, want %v", status, http.StatusInternalServerError)
+		t.Errorf("wrong status code: got '%d' want '%d'", status, http.StatusInternalServerError)
 	}
 	expected := `
 {
@@ -336,8 +377,8 @@ func TestApp_getSilenceWithID(t *testing.T) {
 }
 `
 	if ok, err := AreEqualJSON(rr.Body.String(), expected); !ok || err != nil {
-		t.Errorf("handler returned unexpected body: got %v want %v, err: %v",
-			rr.Body.String(), expected, err)
+		t.Errorf("handler returned unexpected body\ngot: '%s'\nwant: '%s'\nerror: '%s'",
+			rr.Body.String(), expected, err.Error())
 	}
 }
 
@@ -369,6 +410,9 @@ var (
 )
 
 func TestAPISilenceRequest_Valid(t *testing.T) {
+	name := "foo"
+	value := "bar"
+	isRegex := false
 	var cases = []struct {
 		request APISilenceRequest
 		want    bool
@@ -377,11 +421,11 @@ func TestAPISilenceRequest_Valid(t *testing.T) {
 		{APISilenceRequest{
 			Comment:   "scheduled maintenance",
 			CreatedBy: "scheduler",
-			Matchers: []map[string]interface{}{
+			Matchers: models.Matchers{
 				{
-					"name":    "foo",
-					"value":   "bar",
-					"isRegex": false,
+					Name:    &name,
+					Value:   &value,
+					IsRegex: &isRegex,
 				},
 			},
 			Schedule: Schedule{
@@ -397,11 +441,11 @@ func TestAPISilenceRequest_Valid(t *testing.T) {
 
 		// missing Comment & CreatedBy
 		{APISilenceRequest{
-			Matchers: []map[string]interface{}{
+			Matchers: models.Matchers{
 				{
-					"name":    "foo",
-					"value":   "bar",
-					"isRegex": false,
+					Name:    &name,
+					Value:   &value,
+					IsRegex: &isRegex,
 				},
 			},
 			Schedule: Schedule{
@@ -419,7 +463,7 @@ func TestAPISilenceRequest_Valid(t *testing.T) {
 		{APISilenceRequest{
 			Comment:   "scheduled maintenance",
 			CreatedBy: "scheduler",
-			Matchers:  []map[string]interface{}{},
+			Matchers:  models.Matchers{},
 			Schedule: Schedule{
 				StartTime: "2021-10-12T12:34:02.566Z",
 				EndTime:   "2021-10-12T13:34:02.566Z",
@@ -435,7 +479,7 @@ func TestAPISilenceRequest_Valid(t *testing.T) {
 	for _, c := range cases {
 		got := c.request.Valid()
 		if got != c.want {
-			t.Errorf("APISilenceRequest validation not returning expected result for => %v\n", c.request)
+			t.Errorf("APISilenceRequest validation not returning expected result for => '%v'\n", c.request)
 		}
 	}
 }
@@ -473,7 +517,7 @@ func TestSchedule_Valid(t *testing.T) {
 	for _, c := range cases {
 		got := c.schedule.Valid()
 		if got != c.want {
-			t.Errorf("Schedule validation not returning expected result for => %v\n", c.schedule)
+			t.Errorf("Schedule validation not returning expected result for => '%v'\n", c.schedule)
 		}
 	}
 }
@@ -511,7 +555,7 @@ func TestRepeat_Valid(t *testing.T) {
 	for _, c := range cases {
 		got := c.repeat.Valid()
 		if got != c.want {
-			t.Errorf("Repeat validation not returning expected result for => %v\n", c.repeat)
+			t.Errorf("Repeat validation not returning expected result for => '%v'\n", c.repeat)
 		}
 	}
 }
