@@ -159,7 +159,7 @@ func TestApp_createSilence(t *testing.T) {
 	client.On("CreateSilenceWith",
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("string"),
-		mock.AnythingOfType("[]map[string]interface {}")).Return("1234", nil)
+		mock.AnythingOfType("models.Matchers")).Return("1234", nil)
 	app := App{
 		config: &Config{},
 		client: &client,
