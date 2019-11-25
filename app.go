@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -46,11 +47,6 @@ func writeError(msg string, w http.ResponseWriter) {
 	resp := APIResponse{Status: errorStatus, Message: msg}
 	w.WriteHeader(http.StatusInternalServerError)
 	json.NewEncoder(w).Encode(resp)
-}
-
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "index")
 }
 
 func (a *App) getAlerts(w http.ResponseWriter, r *http.Request) {
@@ -282,6 +278,29 @@ func (a *App) expireSilence(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+var templates *template.Template
+
+func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) error {
+	return templates.ExecuteTemplate(w, tmpl, data)
+}
+
+type IndexData struct {
+	Data string
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	data := IndexData{
+		Data: "sample data",
+	}
+
+	err := renderTemplate(w, "layout.gohtml", data)
+	if err != nil {
+		msg := fmt.Sprintf("Internal error rendering page: %s", err.Error())
+		writeError(msg, w)
+		return
+	}
+}
+
 func main() {
 	kingpin.Parse()
 
@@ -293,6 +312,12 @@ func main() {
 	application := App{
 		config: appConf,
 		client: NewAlertManagerClient(appConf.AlertmanagerAPI),
+	}
+
+	templates, err = template.ParseGlob("templates/*")
+	if err != nil {
+		log.Printf("error loading templates: %s\n", err.Error())
+		os.Exit(genericError)
 	}
 
 	r := mux.NewRouter().StrictSlash(true)
