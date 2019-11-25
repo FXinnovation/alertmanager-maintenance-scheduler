@@ -1,4 +1,48 @@
-{{define "footer.html"}}
+{{define "footer.gohtml"}}
+<script language="JavaScript">
+    let counter
+    $(document).ready(function () {
+        counter = 2;
+        $("#addMatcherButton").click(function () {
+            if (counter > 10) {
+                alert("Only 10 matchers allowed");
+                return false;
+            }
+            let newTextBoxDiv = $(document.createElement('div')).attr("id", 'matcher_' + counter).attr("class", "form-inline");
+
+            let htmlTemplate = `
+                        <div class="form-group">
+                            <label for="field-name_${counter}">Field Name</label>
+                            <input type="text" class="form-control" id="field-name_${counter}" placeholder="Field Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="field-value_${counter}">Field Value</label>
+                            <input type="text" class="form-control" id="field-value_${counter}" placeholder="Field Value">
+                        </div>
+                        <div class="form-group">
+                            <label for="field-regex_${counter}">Regex</label>
+                            <input type="checkbox" class="form-control" id="field-regex_${counter}" placeholder="Regex">
+                        </div>
+                        <button class="btn btn-danger" data-role="remove" id="removeMatcherButton_${counter}" onclick="removeMatcher(${counter})">
+                            Remove
+                        </button>
+            `
+            newTextBoxDiv.after().html(htmlTemplate);
+
+            newTextBoxDiv.appendTo("#matcherGroup");
+            counter++;
+        });
+
+    });
+    function removeMatcher(counterIndex) {
+        $("#matcher_" + counterIndex).remove();
+        counter--;
+    }
+
+    flatpickr("#start_time", {});
+    flatpickr("#end_time", {});
+</script>
+
 </body>
 </html>
 {{end}}
