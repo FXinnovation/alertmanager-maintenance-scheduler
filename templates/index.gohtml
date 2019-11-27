@@ -30,17 +30,26 @@
                     <p><b>Repeat</b></p>
                 </div>
 
-                <div class="input-group mb-3">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text" id="inputGroup-sizing-default">Count</span>
+                <div class="row">
+                    <div class="col input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="inputGroup-sizing-default">Count</span>
+                        </div>
+                        <input type="text" class="form-control" name="count" id="count" aria-describedby="countHelp"/>
+                        <small id="countHelp" class="text-muted">
+                            Must be a number between 0-50.
+                        </small>
                     </div>
-                    <input type="text" class="form-control" name="count" id="count"/>
-                </div>
-                <div class="input-group mb-3">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text" id="inputGroup-sizing-default">Interval</span>
+                    <div class="col input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="inputGroup-sizing-default">Interval</span>
+                        </div>
+                        <select class="form-control" name="interval" id="interval">
+                            <option value="h">Hour(s)</option>
+                            <option value="d">Day(s)</option>
+                            <option value="w">Week(s)</option>
+                        </select>
                     </div>
-                    <input type="text" class="form-control" name="interval" id="interval"/>
                 </div>
 
                 <div class="row container">
@@ -80,19 +89,20 @@
                     <p><b>Notes</b></p>
                 </div>
 
-                <div class="input-group mb-3">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text" id="inputGroup-sizing-default">Comment</span>
+                <div class="row">
+                    <div class="col input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="inputGroup-sizing-default">Comment</span>
+                        </div>
+                        <input type="text" class="form-control" name="comment" id="comment"/>
                     </div>
-                    <input type="text" class="form-control" name="comment" id="comment"/>
-                </div>
-                <div class="input-group mb-3">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text" id="inputGroup-sizing-default">Created By</span>
+                    <div class="col input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="inputGroup-sizing-default">Created By</span>
+                        </div>
+                        <input type="text" class="form-control" name="created_by" id="created_by"/>
                     </div>
-                    <input type="text" class="form-control" name="created_by" id="created_by"/>
                 </div>
-
 
             </div>
             <div class="col-md-6">
