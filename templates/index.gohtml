@@ -17,13 +17,13 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="inputGroup-sizing-default">Start Time</span>
                             </div>
-                            <input type="text" class="form-control" name="start_time" id="start_time"/>
+                            <input type="text" class="form-control" name="Schedule.StartTime" id="startTime"/>
                         </div>
                         <div class="col input-group mb-3">
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="inputGroup-sizing-default">End Time</span>
                             </div>
-                            <input type="text" class="form-control" name="end_time" id="end_time"/>
+                            <input type="text" class="form-control" name="Schedule.EndTime" id="endTime"/>
                         </div>
                     </div>
 
@@ -36,7 +36,7 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="inputGroup-sizing-default">Count</span>
                             </div>
-                            <input type="text" class="form-control" name="count" id="count" aria-describedby="countHelp"/>
+                            <input type="text" class="form-control" name="Schedule.Repeat.Count" id="count" aria-describedby="countHelp"/>
                             <small id="countHelp" class="text-muted">
                                 Must be a number between 0-50.
                             </small>
@@ -45,7 +45,7 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="inputGroup-sizing-default">Interval</span>
                             </div>
-                            <select class="form-control" name="interval" id="interval">
+                            <select class="form-control" name="Schedule.Repeat.Interval" id="interval">
                                 <option value="h">Hour(s)</option>
                                 <option value="d">Day(s)</option>
                                 <option value="w">Week(s)</option>
@@ -95,13 +95,13 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="inputGroup-sizing-default">Comment</span>
                             </div>
-                            <input type="text" class="form-control" name="comment" id="comment"/>
+                            <input type="text" class="form-control" name="Comment" id="comment"/>
                         </div>
                         <div class="col input-group mb-3">
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="inputGroup-sizing-default">Created By</span>
                             </div>
-                            <input type="text" class="form-control" name="created_by" id="created_by"/>
+                            <input type="text" class="form-control" name="CreatedBy" id="createdBy"/>
                         </div>
                     </div>
 
