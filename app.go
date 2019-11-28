@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/alertmanager/api/v2/models"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -62,25 +63,25 @@ func (a *App) getAlerts(w http.ResponseWriter, r *http.Request) {
 
 // APISilenceRequest request for silence
 type APISilenceRequest struct {
-	ID        string          `json:"id"`
+	ID        string          `json:"id";schema:"ID"`
 	Comment   string          `json:"comment"`
 	CreatedBy string          `json:"createdBy"`
-	Matchers  models.Matchers `json:"matchers"`
-	Schedule  Schedule        `json:"schedule"`
+	Matchers  models.Matchers `json:"matchers";schema:"-"`
+	Schedule  Schedule        `json:"schedule";schema:"Schedule"`
 }
 
 // Schedule structure
 type Schedule struct {
-	StartTime string `json:"start_time"`
-	EndTime   string `json:"end_time"`
-	Repeat    Repeat `json:"repeat"`
+	StartTime string `json:"start_time";schema:"StartTime"`
+	EndTime   string `json:"end_time";schema:"EndTime"`
+	Repeat    Repeat `json:"repeat";schema:"Repeat"`
 }
 
 // Repeat structure
 type Repeat struct {
-	Enabled  bool   `json:"enabled"`
-	Interval string `json:"interval"`
-	Count    int    `json:"count"`
+	Enabled  bool   `json:"enabled";schema:"-"`
+	Interval string `json:"interval";schema:"Interval"`
+	Count    int    `json:"count";schema:"Count"`
 }
 
 // Valid validates a silence request
@@ -154,9 +155,16 @@ func addDuration(timestamp, interval string, count int) (string, error) {
 
 func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	var silenceRequest APISilenceRequest
-	var decoder = json.NewDecoder(r.Body)
+	var decoder = schema.NewDecoder()
 
-	err := decoder.Decode(&silenceRequest)
+	err := r.ParseForm()
+	if err != nil {
+		msg := fmt.Sprintf("unable to parse form: %s", err.Error())
+		writeError(msg, w)
+		return
+	}
+
+	err = decoder.Decode(&silenceRequest, r.PostForm)
 	if err != nil {
 		msg := fmt.Sprintf("unable to read silence request: %s", err.Error())
 		writeError(msg, w)
@@ -164,7 +172,7 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !silenceRequest.Valid() {
-		msg := "unable to read silence request"
+		msg := "silence request is invalid"
 		writeError(msg, w)
 		return
 	}
