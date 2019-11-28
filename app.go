@@ -11,9 +11,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/prometheus/alertmanager/api/v2/models"
-
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -63,11 +60,17 @@ func (a *App) getAlerts(w http.ResponseWriter, r *http.Request) {
 
 // APISilenceRequest request for silence
 type APISilenceRequest struct {
-	ID        string          `json:"id";schema:"ID"`
-	Comment   string          `json:"comment"`
-	CreatedBy string          `json:"createdBy"`
-	Matchers  models.Matchers `json:"matchers";schema:"-"`
-	Schedule  Schedule        `json:"schedule";schema:"Schedule"`
+	ID        string    `json:"id";schema:"ID"`
+	Comment   string    `json:"comment";schema:"Comment"`
+	CreatedBy string    `json:"createdBy";schema:"CreatedBy"`
+	Matchers  []Matcher `json:"matchers";schema:"Matchers"`
+	Schedule  Schedule  `json:"schedule";schema:"Schedule"`
+}
+
+type Matcher struct {
+	Name    string `json:"name";schema:"Name"`
+	Value   string `json:"value";schema:"Value"`
+	IsRegex bool   `json:"isRegex";schema:"IsRegex"`
 }
 
 // Schedule structure
@@ -93,9 +96,10 @@ func (r APISilenceRequest) Valid() bool {
 		return false
 	}
 
-	err := r.Matchers.Validate(strfmt.Default)
-	if err != nil {
-		return false
+	for _, m := range r.Matchers {
+		if !m.Valid() {
+			return false
+		}
 	}
 
 	if r.Schedule.Valid() != true {
@@ -105,6 +109,10 @@ func (r APISilenceRequest) Valid() bool {
 	if r.Schedule.Repeat.Valid() != true {
 		return false
 	}
+	return true
+}
+
+func (m Matcher) Valid() bool {
 	return true
 }
 
