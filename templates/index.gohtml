@@ -36,7 +36,7 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="inputGroup-sizing-default">Count</span>
                             </div>
-                            <input type="text" class="form-control" name="Schedule.Repeat.Count" id="count" aria-describedby="countHelp"/>
+                            <input type="text" class="form-control" name="Schedule.Repeat.Count" id="count" aria-describedby="countHelp" required pattern="^\d{1,2}$"/>
                             <small id="countHelp" class="text-muted">
                                 Must be a number between 0-50.
                             </small>
@@ -63,19 +63,16 @@
                                 <div class="form-inline" id="matcher_1">
                                     <div class="form-group">
                                         <label for="field-name_1">Field Name</label>
-                                        <input type="text" class="form-control" id="field-name_1" placeholder="Field Name">
+                                        <input type="text" class="form-control" id="field-name_1" placeholder="Field Name" required>
                                     </div>
                                     <div class="form-group">
                                         <label for="field-value_1">Field Value</label>
-                                        <input type="text" class="form-control" id="field-value_1" placeholder="Field Value">
+                                        <input type="text" class="form-control" id="field-value_1" placeholder="Field Value" required>
                                     </div>
                                     <div class="form-group">
                                         <label for="field-regex_1">Regex</label>
                                         <input type="checkbox" class="form-control" id="field-regex_1" placeholder="Regex">
                                     </div>
-                                    <button class="btn btn-danger" data-role="remove" id="removeMatcherButton" onclick="removeMatcher(1)">
-                                        Remove
-                                    </button>
                                 </div>
                             </div>
                             <div>
@@ -95,13 +92,13 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="inputGroup-sizing-default">Comment</span>
                             </div>
-                            <input type="text" class="form-control" name="Comment" id="comment"/>
+                            <input type="text" class="form-control" name="Comment" id="comment" required/>
                         </div>
                         <div class="col input-group mb-3">
                             <div class="input-group-prepend">
                                 <span class="input-group-text" id="inputGroup-sizing-default">Created By</span>
                             </div>
-                            <input type="text" class="form-control" name="CreatedBy" id="createdBy"/>
+                            <input type="text" class="form-control" name="CreatedBy" id="createdBy" required/>
                         </div>
                     </div>
 
