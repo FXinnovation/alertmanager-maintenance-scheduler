@@ -39,8 +39,18 @@
         counter--;
     }
 
-    flatpickr("#startTime", {enableTime: true});
-    flatpickr("#endTime", {enableTime: true});
+    flatpickr("#startTime", {
+        enableTime: true,
+        dateFormat: "Z",
+        minDate: "today",
+        maxDate: new Date().fp_incr(90)
+        });
+    flatpickr("#endTime", {
+        enableTime: true,
+        dateFormat: "Z",
+        minDate: "today",
+        maxDate: new Date().fp_incr(90)
+        });
 </script>
 
 </body>
