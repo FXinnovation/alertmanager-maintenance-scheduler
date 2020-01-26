@@ -8,7 +8,7 @@
                 alert("Only 10 matchers allowed");
                 return false;
             }
-            let newTextBoxDiv = $(document.createElement('div')).attr("id", 'matcher_' + counter).attr("class", 'row');
+            let newTextBoxDiv = $(document.createElement('div')).attr("class", 'row').attr("id", 'matcher_' + counter);
 
             let htmlTemplate = `
                             <div class="col-4 input-group mb-3">
@@ -24,8 +24,8 @@
                                 <input type="text" class="form-control" name="Matchers.${counter}.Value" id="value" required>
                             </div>
                             <div class="col-2 mb-3">
-                                <label class="custom-control-label" for="Matchers.${counter}.Regex">Regex</label>
-                                <input type="checkbox" class="custom-control-input" id="Matchers.${counter}.Regex" name="Matchers.${counter}.Regex">
+                                <label class="custom-control-label" for="Matchers.${counter}.Regex">IsRegex</label>
+                                <input type="checkbox" class="custom-control-input" id="Matchers.${counter}.IsRegex" name="Matchers.${counter}.IsRegex">
                             </div>
                             <div class="col-1">
                                 <button type="button" class="btn btn-danger mb-3" data-role="remove" id="removeMatcherButton_${counter}" onclick="removeMatcher(${counter})">
@@ -44,20 +44,40 @@
     function removeMatcher(counterIndex) {
         $("#matcher_" + counterIndex).remove();
         counter--;
-    }
+    };
+
+    function showAlert(msg) {
+        document.getElementById("alertMessage").innerHTML = msg;
+        $('#alertMessage').show();
+    };
+
+    function validateForm() {
+        let startTime = document.getElementById("startTime").value;
+        if (startTime === "") {
+            showAlert("Start time of Maintenance window must be specified.");
+            return false;
+        }
+        let endTime = document.getElementById("endTime").value;
+        if (endTime === "") {
+            showAlert("End time of Maintenance window must be specified.");
+            return false;
+        }
+    };
+
 
     flatpickr("#startTime", {
         enableTime: true,
         dateFormat: "Z",
         minDate: "today",
         maxDate: new Date().fp_incr(90)
-        });
+    });
+
     flatpickr("#endTime", {
         enableTime: true,
         dateFormat: "Z",
         minDate: "today",
         maxDate: new Date().fp_incr(90)
-        });
+    });
 </script>
 
 </body>
