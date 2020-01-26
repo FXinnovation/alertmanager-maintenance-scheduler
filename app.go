@@ -22,6 +22,8 @@ var (
 	genericError  = 1
 
 	requestScheduleReg = regexp.MustCompile(`^(h|d|w)?$`)
+	scheduleCountMin   = 0
+	scheduleCountMax   = 50
 )
 
 const (
@@ -88,62 +90,78 @@ type Repeat struct {
 }
 
 // Valid validates a silence request
-func (r APISilenceRequest) Valid() bool {
-	if r.Comment == "" || r.CreatedBy == "" {
-		return false
+func (r APISilenceRequest) Valid() (string, bool) {
+	log.Println(r)
+	if r.Comment == "" {
+		return "comment field empty", false
 	}
+
+	if r.CreatedBy == "" {
+		return "createdBy field empty", false
+	}
+
 	if len(r.Matchers) < 1 {
-		return false
+		return "number of matchers should be bigger than 0", false
 	}
 
 	for _, m := range r.Matchers {
 		if !m.Valid() {
-			return false
+			return fmt.Sprintf("matcher '%v' is invalid", m), false
 		}
 	}
 
-	if r.Schedule.Valid() != true {
-		return false
+	msg, ok := r.Schedule.Valid()
+	if !ok {
+		return msg, false
 	}
 
-	if r.Schedule.Repeat.Valid() != true {
-		return false
+	msg, ok = r.Schedule.Repeat.Valid()
+	if !ok {
+		return msg, false
 	}
-	return true
+	return "", true
 }
 
 func (m Matcher) Valid() bool {
 	return true
 }
 
-//Valid returns true if the schedule is valid
-func (s Schedule) Valid() bool {
+// Valid returns true if the schedule is valid
+func (s Schedule) Valid() (string, bool) {
 	if s == (Schedule{}) {
-		return false
+		return "empty schedule provided", false
 	}
+
 	_, err := time.Parse(requestTimeLayout, s.StartTime)
 	if err != nil {
-		return false
+		return "invalid start time format", false
 	}
+
 	_, err = time.Parse(requestTimeLayout, s.EndTime)
 	if err != nil {
-		return false
+		return "invalid end time format", false
 	}
-	return true
+	return "", true
 }
 
 //Valid returns true if the repeat is valid
-func (r Repeat) Valid() bool {
+func (r Repeat) Valid() (string, bool) {
 	if r == (Repeat{}) {
-		return false
+		return "schedule repeat is empty", false
 	}
-	if r.Count > 50 {
-		return false
+
+	if r.Count <= scheduleCountMin {
+		return fmt.Sprintf("repeat count must be higher than %d", scheduleCountMin), false
 	}
+
+	if r.Count >= scheduleCountMax {
+		return fmt.Sprintf("repeat count must be lower than or equal to %d", scheduleCountMax), false
+	}
+
 	if !requestScheduleReg.MatchString(r.Interval) {
-		return false
+		return "unknown schedule interval provided", false
 	}
-	return true
+	return "", true
 }
 
 var intervalTable = map[string]time.Duration{
@@ -179,8 +197,9 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !silenceRequest.Valid() {
-		msg := "silence request is invalid"
+	msg, ok := silenceRequest.Valid()
+	if !ok {
+		msg = fmt.Sprintf("silence request is invalid: %s", msg)
 		writeError(msg, w)
 		return
 	}
@@ -201,6 +220,8 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		log.Printf("sending silence request:\n%v\n", silenceRequest)
+
 		_, err = a.client.CreateSilenceWith(nextStart, nextEnd, silenceRequest)
 		if err != nil {
 			log.Println(err)
@@ -209,7 +230,7 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	msg := fmt.Sprintf("%d/%d new silences created", silenceRequest.Schedule.Repeat.Count-requestErr, silenceRequest.Schedule.Repeat.Count)
+	msg = fmt.Sprintf("%d/%d new silences created", silenceRequest.Schedule.Repeat.Count-requestErr, silenceRequest.Schedule.Repeat.Count)
 	if requestErr != 0 {
 		writeError(msg, w)
 		return
