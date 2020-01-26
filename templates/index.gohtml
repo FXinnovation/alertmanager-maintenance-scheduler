@@ -2,12 +2,12 @@
 <body>
 
 <main role="main">
-    <div class="container-fluid">
-        <h3>Create a scheduled maintenance</h3>
+    <div class="container">
+        <h1 class="mt-5 mb-4">New Maintenance</h1>
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-12">
 
-                <div class="row container">
+                <div class="row container mt-4">
                     <p><b>Schedule</b></p>
                 </div>
 
@@ -27,7 +27,7 @@
                         </div>
                     </div>
 
-                    <div class="row container">
+                    <div class="row container mt-4">
                         <p><b>Repeat</b></p>
                     </div>
 
@@ -53,37 +53,43 @@
                         </div>
                     </div>
 
-                    <div class="row container">
+                    <div class="row container mt-4">
                         <p><b>Matchers</b></p>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div data-role="dynamic-fields" id="matcherGroup">
-                                <div class="form-inline" id="matcher_1">
-                                    <div class="form-group">
-                                        <label for="field-name_1">Field Name</label>
-                                        <input type="text" class="form-control" id="field-name_1" placeholder="Field Name" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="field-value_1">Field Value</label>
-                                        <input type="text" class="form-control" id="field-value_1" placeholder="Field Value" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="field-regex_1">Regex</label>
-                                        <input type="checkbox" class="form-control" id="field-regex_1" placeholder="Regex">
-                                    </div>
+                    <div data-role="dynamic-fields" id="matcherGroup">
+                        <div class="row">
+                            <div class="col-4 input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroup-sizing-default">Name</span>
                                 </div>
+                                <input type="text" class="form-control" name="Matchers.0.Name" id="name" required>
                             </div>
-                            <div>
-                                <button class="btn btn-primary" type="button" data-role="add" id="addMatcherButton">
-                                    Add
+                            <div class="col-4 input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroup-sizing-default">Value</span>
+                                </div>
+                                <input type="text" class="form-control" name="Matchers.0.Value" id="value" required>
+                            </div>
+                            <div class="col-2 mb-3">
+                                <label class="custom-control-label" for="Matchers.0.Regex">Regex</label>
+                                <input type="checkbox" class="custom-control-input" id="Matchers.0.Regex" name="Matchers.0.Regex">
+                            </div>
+                            <div class="col-1">
+                                <button type="button" class="btn btn-danger mb-3" data-role="remove" id="removeMatcherButton_${counter}" onclick="removeMatcher(${counter})">
+                                    -
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     <div class="row container">
+                        <button type="button" class="btn btn-secondary" data-role="add" id="addMatcherButton">
+                            +
+                        </button>
+                    </div>
+
+                    <div class="row container mt-4">
                         <p><b>Notes</b></p>
                     </div>
 
@@ -102,20 +108,10 @@
                         </div>
                     </div>
 
-                    <div class="row">
+                    <div class="row container pull-right">
                         <button class="btn btn-primary" type="submit">Create maintenance</button>
                     </div>
                 </form>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card text-white bg-info mb-3" style="max-width: 18rem;">
-                    <div class="card-header">Scheduling Maintenances</div>
-                    <div class="card-body">
-                        <h5 class="card-title">Usage</h5>
-                        <p class="card-text">In order to schedule a maintenance you need to define a bunch of things. Like this and that, oh and that too!</p>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
