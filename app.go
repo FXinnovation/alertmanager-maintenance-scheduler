@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -186,6 +187,7 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		msg := fmt.Sprintf("unable to parse form: %s", err.Error())
+		sessionAddFlash(w, r, "danger", msg)
 		writeError(msg, w)
 		return
 	}
@@ -193,6 +195,7 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	err = decoder.Decode(&silenceRequest, r.PostForm)
 	if err != nil {
 		msg := fmt.Sprintf("unable to read silence request: %s", err.Error())
+		sessionAddFlash(w, r, "danger", msg)
 		writeError(msg, w)
 		return
 	}
@@ -200,6 +203,7 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	msg, ok := silenceRequest.Valid()
 	if !ok {
 		msg = fmt.Sprintf("silence request is invalid: %s", msg)
+		sessionAddFlash(w, r, "danger", msg)
 		writeError(msg, w)
 		return
 	}
@@ -232,16 +236,16 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 
 	msg = fmt.Sprintf("%d/%d new silences created", silenceRequest.Schedule.Repeat.Count-requestErr, silenceRequest.Schedule.Repeat.Count)
 	if requestErr != 0 {
+
+		sessionAddFlash(w, r, "danger", msg)
 		writeError(msg, w)
 		return
 	}
 
-	resp := APIResponse{
-		Status:  "success",
-		Message: msg,
-	}
+	sessionAddFlash(w, r, "success", msg)
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+
+	http.Redirect(w, r, "http://localhost:8080/", 307)
 }
 
 func (a *App) updateSilence(w http.ResponseWriter, r *http.Request) {
@@ -260,7 +264,6 @@ func (a *App) updateSilence(w http.ResponseWriter, r *http.Request) {
 		writeError(msg, w)
 		return
 	}
-
 	http.Redirect(w, r, url.String(), 307)
 }
 
@@ -317,20 +320,27 @@ func (a *App) expireSilence(w http.ResponseWriter, r *http.Request) {
 
 var templates *template.Template
 
+type basePage struct {
+	Flashes []interface{}
+}
+
 func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) error {
 	return templates.ExecuteTemplate(w, tmpl, data)
 }
 
-type IndexData struct {
-	Data string
-}
-
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	data := IndexData{
-		Data: "sample data",
+	flashes, err := sessionGetFlash(w, r)
+	if err != nil {
+		msg := fmt.Sprintf("Internal error rendering page: %s", err.Error())
+		writeError(msg, w)
+		return
 	}
 
-	err := renderTemplate(w, "layout.gohtml", data)
+	data := basePage{
+		Flashes: flashes,
+	}
+
+	err = renderTemplate(w, "layout.gohtml", data)
 	if err != nil {
 		msg := fmt.Sprintf("Internal error rendering page: %s", err.Error())
 		writeError(msg, w)
@@ -368,8 +378,10 @@ func main() {
 	s.HandleFunc("/silence/{id}", application.updateSilence).Methods("POST").Name("updateSilence")
 	s.HandleFunc("/silence/{id}", application.expireSilence).Methods("DELETE").Name("expireSilence")
 
-	r.HandleFunc("/", indexHandler)
+	r.HandleFunc("/", indexHandler).Name("indexHandler")
 	http.Handle("/", r)
+
+	gob.Register(&Flash{})
 
 	log.Printf("Starting server on port %d\n", *listenAddress)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", *listenAddress), nil)
