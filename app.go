@@ -234,18 +234,22 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	msg = fmt.Sprintf("%d/%d new silences created", silenceRequest.Schedule.Repeat.Count-requestErr, silenceRequest.Schedule.Repeat.Count)
-	if requestErr != 0 {
-
-		sessionAddFlash(w, r, "danger", msg)
+	url, err := mux.CurrentRoute(r).Subrouter().Get("indexHandler").URL()
+	if err != nil {
+		msg := "internal error: unable to find redirect page"
 		writeError(msg, w)
 		return
 	}
 
+	msg = fmt.Sprintf("%d/%d new silences created", silenceRequest.Schedule.Repeat.Count-requestErr, silenceRequest.Schedule.Repeat.Count)
+	if requestErr != 0 {
+		msg = fmt.Sprintf("'%d' requests could not be completed", requestErr)
+		sessionAddFlash(w, r, "danger", msg)
+		http.Redirect(w, r, url.String(), 307)
+	}
 	sessionAddFlash(w, r, "success", msg)
-	w.WriteHeader(http.StatusOK)
 
-	http.Redirect(w, r, "http://localhost:8080/", 307)
+	http.Redirect(w, r, url.String(), 307)
 }
 
 func (a *App) updateSilence(w http.ResponseWriter, r *http.Request) {
@@ -258,7 +262,7 @@ func (a *App) updateSilence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url, err := mux.CurrentRoute(r).Subrouter().Get("createSilence").URL()
+	url, err := mux.CurrentRoute(r).Subrouter().Get("indexHandler").URL()
 	if err != nil {
 		msg := fmt.Sprintf("unable to update silence '%s'", id)
 		writeError(msg, w)
@@ -367,9 +371,9 @@ func main() {
 		os.Exit(genericError)
 	}
 
-	r := mux.NewRouter().StrictSlash(true)
+	router := mux.NewRouter().StrictSlash(true)
 
-	s := r.PathPrefix("/api/v1/").Subrouter()
+	s := router.PathPrefix("/api/v1/").Subrouter()
 	s.HandleFunc("/alerts", application.getAlerts).Methods("GET").Name("getAlerts")
 	s.HandleFunc("/silence", application.createSilence).Methods("POST").Name("createSilence")
 	s.HandleFunc("/silences", application.getAllSilences).Methods("GET").Name("getAllSilences")
@@ -378,8 +382,8 @@ func main() {
 	s.HandleFunc("/silence/{id}", application.updateSilence).Methods("POST").Name("updateSilence")
 	s.HandleFunc("/silence/{id}", application.expireSilence).Methods("DELETE").Name("expireSilence")
 
-	r.HandleFunc("/", indexHandler).Name("indexHandler")
-	http.Handle("/", r)
+	router.HandleFunc("/", indexHandler).Name("indexHandler")
+	http.Handle("/", router)
 
 	gob.Register(&Flash{})
 
