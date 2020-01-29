@@ -242,9 +242,10 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 
 	msg = fmt.Sprintf("%d/%d new silences created", silenceRequest.Schedule.Repeat.Count-requestErr, silenceRequest.Schedule.Repeat.Count)
 	if requestErr != 0 {
-		msg = fmt.Sprintf("'%d' requests could not be completed", requestErr)
+		msg = fmt.Sprintf("'%d' request(s) could not be completed", requestErr)
 		sessionAddFlash(w, r, "danger", msg)
 		http.Redirect(w, r, url.String(), 307)
+		return
 	}
 	sessionAddFlash(w, r, "success", msg)
 
