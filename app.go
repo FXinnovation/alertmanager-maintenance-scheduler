@@ -92,7 +92,6 @@ type Repeat struct {
 
 // Valid validates a silence request
 func (r APISilenceRequest) Valid() (string, bool) {
-	log.Println(r)
 	if r.Comment == "" {
 		return "comment field empty", false
 	}

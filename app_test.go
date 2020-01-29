@@ -421,11 +421,11 @@ func TestAPISilenceRequest_Valid(t *testing.T) {
 		{APISilenceRequest{
 			Comment:   "scheduled maintenance",
 			CreatedBy: "scheduler",
-			Matchers: models.Matchers{
-				{
-					Name:    &name,
-					Value:   &value,
-					IsRegex: &isRegex,
+			Matchers: []Matcher{
+				Matcher{
+					Name:    name,
+					Value:   value,
+					IsRegex: isRegex,
 				},
 			},
 			Schedule: Schedule{
@@ -441,11 +441,11 @@ func TestAPISilenceRequest_Valid(t *testing.T) {
 
 		// missing Comment & CreatedBy
 		{APISilenceRequest{
-			Matchers: models.Matchers{
-				{
-					Name:    &name,
-					Value:   &value,
-					IsRegex: &isRegex,
+			Matchers: []Matcher{
+				Matcher{
+					Name:    name,
+					Value:   value,
+					IsRegex: isRegex,
 				},
 			},
 			Schedule: Schedule{
@@ -463,7 +463,7 @@ func TestAPISilenceRequest_Valid(t *testing.T) {
 		{APISilenceRequest{
 			Comment:   "scheduled maintenance",
 			CreatedBy: "scheduler",
-			Matchers:  models.Matchers{},
+			Matchers:  []Matcher{},
 			Schedule: Schedule{
 				StartTime: "2021-10-12T12:34:02.566Z",
 				EndTime:   "2021-10-12T13:34:02.566Z",
@@ -477,7 +477,7 @@ func TestAPISilenceRequest_Valid(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.request.Valid()
+		_, got := c.request.Valid()
 		if got != c.want {
 			t.Errorf("APISilenceRequest validation not returning expected result for => '%v'\n", c.request)
 		}
@@ -515,7 +515,7 @@ func TestSchedule_Valid(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.schedule.Valid()
+		_, got := c.schedule.Valid()
 		if got != c.want {
 			t.Errorf("Schedule validation not returning expected result for => '%v'\n", c.schedule)
 		}
@@ -553,7 +553,7 @@ func TestRepeat_Valid(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.repeat.Valid()
+		_, got := c.repeat.Valid()
 		if got != c.want {
 			t.Errorf("Repeat validation not returning expected result for => '%v'\n", c.repeat)
 		}

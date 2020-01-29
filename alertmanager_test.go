@@ -140,8 +140,8 @@ func TestAlertmanagerClient_createSilenceWith(t *testing.T) {
 	isRegex := false
 
 	request := APISilenceRequest{
-		Matchers: models.Matchers{
-			&models.Matcher{Name: &name, Value: &value, IsRegex: &isRegex},
+		Matchers: []Matcher{
+			Matcher{Name: name, Value: value, IsRegex: isRegex},
 		},
 	}
 
