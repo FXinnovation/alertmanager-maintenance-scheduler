@@ -25,6 +25,8 @@ var (
 	requestScheduleReg = regexp.MustCompile(`^(h|d|w)?$`)
 	scheduleCountMin   = 0
 	scheduleCountMax   = 50
+
+	router *mux.Router
 )
 
 const (
@@ -233,7 +235,7 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	url, err := mux.CurrentRoute(r).Subrouter().Get("indexHandler").URL()
+	url, err := router.Get("indexHandler").URL()
 	if err != nil {
 		msg := "internal error: unable to find redirect page"
 		writeError(msg, w)
@@ -244,12 +246,12 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	if requestErr != 0 {
 		msg = fmt.Sprintf("'%d' request(s) could not be completed", requestErr)
 		sessionAddFlash(w, r, "danger", msg)
-		http.Redirect(w, r, url.String(), 307)
+		http.Redirect(w, r, url.String(), 302)
 		return
 	}
 	sessionAddFlash(w, r, "success", msg)
-
-	http.Redirect(w, r, url.String(), 307)
+	http.Redirect(w, r, url.String(), 302)
+	return
 }
 
 func (a *App) updateSilence(w http.ResponseWriter, r *http.Request) {
@@ -371,7 +373,7 @@ func main() {
 		os.Exit(genericError)
 	}
 
-	router := mux.NewRouter().StrictSlash(true)
+	router = mux.NewRouter().StrictSlash(true)
 
 	s := router.PathPrefix("/api/v1/").Subrouter()
 	s.HandleFunc("/alerts", application.getAlerts).Methods("GET").Name("getAlerts")
