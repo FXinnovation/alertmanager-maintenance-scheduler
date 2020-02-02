@@ -268,7 +268,7 @@ func (a *App) updateSilence(w http.ResponseWriter, r *http.Request) {
 		writeError(msg, w)
 		return
 	}
-	http.Redirect(w, r, url.String(), 307)
+	http.Redirect(w, r, url.String(), 302)
 }
 
 func (a *App) getSilenceWithID(w http.ResponseWriter, r *http.Request) {
