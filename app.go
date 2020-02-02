@@ -225,8 +225,6 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		log.Printf("sending silence request:\n%v\n", silenceRequest)
-
 		_, err = a.client.CreateSilenceWith(nextStart, nextEnd, silenceRequest)
 		if err != nil {
 			log.Println(err)
