@@ -65,31 +65,31 @@ func (a *App) getAlerts(w http.ResponseWriter, r *http.Request) {
 
 // APISilenceRequest request for silence
 type APISilenceRequest struct {
-	ID        string    `json:"id";schema:"ID"`
-	Comment   string    `json:"comment";schema:"Comment"`
-	CreatedBy string    `json:"createdBy";schema:"CreatedBy"`
-	Matchers  []Matcher `json:"matchers";schema:"Matchers"`
-	Schedule  Schedule  `json:"schedule";schema:"Schedule"`
+	ID        string    `json:"id" schema:"ID"`
+	Comment   string    `json:"comment" schema:"Comment"`
+	CreatedBy string    `json:"createdBy" schema:"CreatedBy"`
+	Matchers  []Matcher `json:"matchers" schema:"Matchers"`
+	Schedule  Schedule  `json:"schedule" schema:"Schedule"`
 }
 
 type Matcher struct {
-	Name    string `json:"name";schema:"Name"`
-	Value   string `json:"value";schema:"Value"`
-	IsRegex bool   `json:"isRegex";schema:"IsRegex"`
+	Name    string `json:"name" schema:"Name"`
+	Value   string `json:"value" schema:"Value"`
+	IsRegex bool   `json:"isRegex" schema:"IsRegex"`
 }
 
 // Schedule structure
 type Schedule struct {
-	StartTime string `json:"start_time";schema:"StartTime"`
-	EndTime   string `json:"end_time";schema:"EndTime"`
-	Repeat    Repeat `json:"repeat";schema:"Repeat"`
+	StartTime string `json:"start_time" schema:"StartTime"`
+	EndTime   string `json:"end_time" schema:"EndTime"`
+	Repeat    Repeat `json:"repeat" schema:"Repeat"`
 }
 
 // Repeat structure
 type Repeat struct {
-	Enabled  bool   `json:"enabled";schema:"-"`
-	Interval string `json:"interval";schema:"Interval"`
-	Count    int    `json:"count";schema:"Count"`
+	Enabled  bool   `json:"enabled" schema:"-"`
+	Interval string `json:"interval" schema:"Interval"`
+	Count    int    `json:"count" schema:"Count"`
 }
 
 // Valid validates a silence request
