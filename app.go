@@ -249,7 +249,6 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionAddFlash(w, r, "success", msg)
 	http.Redirect(w, r, url.String(), 302)
-	return
 }
 
 func (a *App) updateSilence(w http.ResponseWriter, r *http.Request) {
