@@ -27,8 +27,3 @@ export SESSION_KEY="VL94PPxaM5aHj9lkM0JnFA04HCXmzfwa"
 # alternatively
 SESSION_KEY="VL94PPxaM5aHj9lkM0JnFA04HCXmzfwa" ./alertmanager-maintenance-scheduler --config.file=/path/to/config.yml
 ```
-
-
-
-
-
