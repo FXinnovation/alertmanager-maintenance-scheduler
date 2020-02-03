@@ -162,7 +162,7 @@ func (r Repeat) Valid() (string, bool) {
 		return fmt.Sprintf("repeat count must be higher than %d", scheduleCountMin), false
 	}
 
-	if r.Count >= scheduleCountMax {
+	if r.Count > scheduleCountMax {
 		return fmt.Sprintf("repeat count must be lower than or equal to %d", scheduleCountMax), false
 	}
 
