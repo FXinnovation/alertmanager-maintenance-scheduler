@@ -1,15 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/gorilla/mux"
 	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/stretchr/testify/mock"
 )
@@ -164,32 +166,25 @@ func TestApp_createSilence(t *testing.T) {
 		config: &Config{},
 		client: &client,
 	}
-	// Create a request to pass to the handler
-	stringBody := `
-{
-  "id": "id12343",
-  "comment": "a test",
-  "createdBy": "test",
-  "matchers": [
-    {
-      "isRegex": false,
-      "name": "job",
-      "value": "FakeApp"
-    }
-  ],
-  "schedule": {
-    "start_time": "2019-11-01T22:12:33.533Z",
-    "end_time": "2019-11-01T23:11:44.603Z",
-    "repeat": {
-      "enabled": false,
-      "interval": "d",
-      "count": 10
-    }
-  }
-}
-`
-	bodyReader := strings.NewReader(stringBody)
-	req := httptest.NewRequest("GET", "/webhook", bodyReader)
+
+	// initialize router so createSilence handler doesn't fail at redirect
+	router = mux.NewRouter().StrictSlash(true)
+	router.HandleFunc("/", indexHandler).Name("indexHandler")
+
+	form := url.Values{}
+	form.Add("Comment", "test")
+	form.Add("CreatedBy", "test")
+	form.Add("Matchers.0.Name", "job")
+	form.Add("Matchers.0.Value", "MockApp")
+	form.Add("Matchers.0.IsRegex", "false")
+	form.Add("Schedule.StartTime", "2020-11-01T22:12:33.533Z")
+	form.Add("Schedule.EndTime", "2020-11-01T23:11:44.603Z")
+	form.Add("Schedule.Repeat.Count", "1")
+	form.Add("Schedule.Repeat.Interval", "h")
+
+	req := httptest.NewRequest("POST", "/webhook", bytes.NewBufferString(form.Encode()))
+	req.Form = form
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
 
 	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
 	rr := httptest.NewRecorder()
@@ -198,13 +193,8 @@ func TestApp_createSilence(t *testing.T) {
 	// Test the handler with the request and record the result
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("wrong status code: got '%d' want '%d'", status, http.StatusOK)
-	}
-	expected := `{"status":"success","message":"10/10 new silences created"}`
-	if ok, err := AreEqualJSON(rr.Body.String(), expected); !ok || err != nil {
-		t.Errorf("handler returned unexpected body\ngot: '%s'\nwant: '%s'\nerror: '%s'",
-			rr.Body.String(), expected, err.Error())
+	if status := rr.Code; status != http.StatusFound {
+		t.Errorf("wrong status code: got '%d' want '%d'", status, http.StatusFound)
 	}
 }
 
