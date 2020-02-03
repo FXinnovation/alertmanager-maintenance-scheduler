@@ -125,6 +125,12 @@ func (r APISilenceRequest) Valid() (string, bool) {
 }
 
 func (m Matcher) Valid() bool {
+	if m.Name == "" {
+		return false
+	}
+	if m.Value == "" {
+		return false
+	}
 	return true
 }
 
