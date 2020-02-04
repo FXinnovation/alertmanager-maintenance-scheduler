@@ -215,6 +215,12 @@
                 showAlert("End time must be higher than start time.");
                 return false;
             }
+
+            let currentTime = new Date().toISOString()
+            if (currentTime > startTime && currentTime > endTime) {
+                showAlert("Maintenance window cannot be in the past.");
+                return false;
+            }
         };
 
 
