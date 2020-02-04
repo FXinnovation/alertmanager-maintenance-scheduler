@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,12 +9,11 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/prometheus/alertmanager/api/v2/models"
-
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -23,6 +23,10 @@ var (
 	genericError  = 1
 
 	requestScheduleReg = regexp.MustCompile(`^(h|d|w)?$`)
+	scheduleCountMin   = 0
+	scheduleCountMax   = 50
+
+	router *mux.Router
 )
 
 const (
@@ -48,11 +52,6 @@ func writeError(msg string, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "index")
-}
-
 func (a *App) getAlerts(w http.ResponseWriter, r *http.Request) {
 	alerts, err := a.client.ListAlerts()
 	if err != nil {
@@ -66,79 +65,111 @@ func (a *App) getAlerts(w http.ResponseWriter, r *http.Request) {
 
 // APISilenceRequest request for silence
 type APISilenceRequest struct {
-	ID        string          `json:"id"`
-	Comment   string          `json:"comment"`
-	CreatedBy string          `json:"createdBy"`
-	Matchers  models.Matchers `json:"matchers"`
-	Schedule  Schedule        `json:"schedule"`
+	ID        string    `json:"id" schema:"ID"`
+	Comment   string    `json:"comment" schema:"Comment"`
+	CreatedBy string    `json:"createdBy" schema:"CreatedBy"`
+	Matchers  []Matcher `json:"matchers" schema:"Matchers"`
+	Schedule  Schedule  `json:"schedule" schema:"Schedule"`
+}
+
+type Matcher struct {
+	Name    string `json:"name" schema:"Name"`
+	Value   string `json:"value" schema:"Value"`
+	IsRegex bool   `json:"isRegex" schema:"IsRegex"`
 }
 
 // Schedule structure
 type Schedule struct {
-	StartTime string `json:"start_time"`
-	EndTime   string `json:"end_time"`
-	Repeat    Repeat `json:"repeat"`
+	StartTime string `json:"start_time" schema:"StartTime"`
+	EndTime   string `json:"end_time" schema:"EndTime"`
+	Repeat    Repeat `json:"repeat" schema:"Repeat"`
 }
 
 // Repeat structure
 type Repeat struct {
-	Enabled  bool   `json:"enabled"`
-	Interval string `json:"interval"`
-	Count    int    `json:"count"`
+	Enabled  bool   `json:"enabled" schema:"-"`
+	Interval string `json:"interval" schema:"Interval"`
+	Count    int    `json:"count" schema:"Count"`
 }
 
 // Valid validates a silence request
-func (r APISilenceRequest) Valid() bool {
-	if r.Comment == "" || r.CreatedBy == "" {
-		return false
+func (r APISilenceRequest) Valid() (string, bool) {
+	if r.Comment == "" {
+		return "comment field empty", false
 	}
+
+	if r.CreatedBy == "" {
+		return "createdBy field empty", false
+	}
+
 	if len(r.Matchers) < 1 {
-		return false
+		return "number of matchers should be bigger than 0", false
 	}
 
-	err := r.Matchers.Validate(strfmt.Default)
-	if err != nil {
-		return false
+	for _, m := range r.Matchers {
+		if !m.Valid() {
+			return fmt.Sprintf("matcher '%v' is invalid", m), false
+		}
 	}
 
-	if r.Schedule.Valid() != true {
-		return false
+	msg, ok := r.Schedule.Valid()
+	if !ok {
+		return msg, false
 	}
 
-	if r.Schedule.Repeat.Valid() != true {
+	msg, ok = r.Schedule.Repeat.Valid()
+	if !ok {
+		return msg, false
+	}
+	return "", true
+}
+
+func (m Matcher) Valid() bool {
+	if m.Name == "" {
+		return false
+	}
+	if m.Value == "" {
 		return false
 	}
 	return true
 }
 
-//Valid returns true if the schedule is valid
-func (s Schedule) Valid() bool {
+// Valid returns true if the schedule is valid
+func (s Schedule) Valid() (string, bool) {
 	if s == (Schedule{}) {
-		return false
+		return "empty schedule provided", false
 	}
+
 	_, err := time.Parse(requestTimeLayout, s.StartTime)
 	if err != nil {
-		return false
+		return "invalid start time format", false
 	}
+
 	_, err = time.Parse(requestTimeLayout, s.EndTime)
 	if err != nil {
-		return false
+		return "invalid end time format", false
 	}
-	return true
+	return "", true
 }
 
 //Valid returns true if the repeat is valid
-func (r Repeat) Valid() bool {
+func (r Repeat) Valid() (string, bool) {
 	if r == (Repeat{}) {
-		return false
+		return "schedule repeat is empty", false
 	}
-	if r.Count > 50 {
-		return false
+
+	if r.Count <= scheduleCountMin {
+		return fmt.Sprintf("repeat count must be higher than %d", scheduleCountMin), false
 	}
+
+	if r.Count > scheduleCountMax {
+		return fmt.Sprintf("repeat count must be lower than or equal to %d", scheduleCountMax), false
+	}
+
 	if !requestScheduleReg.MatchString(r.Interval) {
-		return false
+		return "unknown schedule interval provided", false
 	}
-	return true
+	return "", true
 }
 
 var intervalTable = map[string]time.Duration{
@@ -158,17 +189,28 @@ func addDuration(timestamp, interval string, count int) (string, error) {
 
 func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	var silenceRequest APISilenceRequest
-	var decoder = json.NewDecoder(r.Body)
+	var decoder = schema.NewDecoder()
 
-	err := decoder.Decode(&silenceRequest)
+	err := r.ParseForm()
 	if err != nil {
-		msg := fmt.Sprintf("unable to read silence request: %s", err.Error())
+		msg := fmt.Sprintf("unable to parse form: %s", err.Error())
+		sessionAddFlash(w, r, "danger", msg)
 		writeError(msg, w)
 		return
 	}
 
-	if !silenceRequest.Valid() {
-		msg := "unable to read silence request"
+	err = decoder.Decode(&silenceRequest, r.PostForm)
+	if err != nil {
+		msg := fmt.Sprintf("unable to read silence request: %s", err.Error())
+		sessionAddFlash(w, r, "danger", msg)
+		writeError(msg, w)
+		return
+	}
+
+	msg, ok := silenceRequest.Valid()
+	if !ok {
+		msg = fmt.Sprintf("silence request is invalid: %s", msg)
+		sessionAddFlash(w, r, "danger", msg)
 		writeError(msg, w)
 		return
 	}
@@ -197,18 +239,22 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	msg := fmt.Sprintf("%d/%d new silences created", silenceRequest.Schedule.Repeat.Count-requestErr, silenceRequest.Schedule.Repeat.Count)
-	if requestErr != 0 {
+	url, err := router.Get("indexHandler").URL()
+	if err != nil {
+		msg := "internal error: unable to find redirect page"
 		writeError(msg, w)
 		return
 	}
 
-	resp := APIResponse{
-		Status:  "success",
-		Message: msg,
+	msg = fmt.Sprintf("%d/%d new silences created", silenceRequest.Schedule.Repeat.Count-requestErr, silenceRequest.Schedule.Repeat.Count)
+	if requestErr != 0 {
+		msg = fmt.Sprintf("'%d' request(s) could not be completed", requestErr)
+		sessionAddFlash(w, r, "danger", msg)
+		http.Redirect(w, r, url.String(), 302)
+		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	sessionAddFlash(w, r, "success", msg)
+	http.Redirect(w, r, url.String(), 302)
 }
 
 func (a *App) updateSilence(w http.ResponseWriter, r *http.Request) {
@@ -221,14 +267,13 @@ func (a *App) updateSilence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url, err := mux.CurrentRoute(r).Subrouter().Get("createSilence").URL()
+	url, err := mux.CurrentRoute(r).Subrouter().Get("indexHandler").URL()
 	if err != nil {
 		msg := fmt.Sprintf("unable to update silence '%s'", id)
 		writeError(msg, w)
 		return
 	}
-
-	http.Redirect(w, r, url.String(), 307)
+	http.Redirect(w, r, url.String(), 302)
 }
 
 func (a *App) getSilenceWithID(w http.ResponseWriter, r *http.Request) {
@@ -282,6 +327,36 @@ func (a *App) expireSilence(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+var templates *template.Template
+
+type basePage struct {
+	Flashes []interface{}
+}
+
+func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) error {
+	return templates.ExecuteTemplate(w, tmpl, data)
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	flashes, err := sessionGetFlash(w, r)
+	if err != nil {
+		msg := fmt.Sprintf("Internal error rendering page: %s", err.Error())
+		writeError(msg, w)
+		return
+	}
+
+	data := basePage{
+		Flashes: flashes,
+	}
+
+	err = renderTemplate(w, "layout.gohtml", data)
+	if err != nil {
+		msg := fmt.Sprintf("Internal error rendering page: %s", err.Error())
+		writeError(msg, w)
+		return
+	}
+}
+
 func main() {
 	kingpin.Parse()
 
@@ -295,9 +370,15 @@ func main() {
 		client: NewAlertManagerClient(appConf.AlertmanagerAPI),
 	}
 
-	r := mux.NewRouter().StrictSlash(true)
+	templates, err = template.ParseGlob("templates/*")
+	if err != nil {
+		log.Printf("error loading templates: %s\n", err.Error())
+		os.Exit(genericError)
+	}
 
-	s := r.PathPrefix("/api/v1/").Subrouter()
+	router = mux.NewRouter().StrictSlash(true)
+
+	s := router.PathPrefix("/api/v1/").Subrouter()
 	s.HandleFunc("/alerts", application.getAlerts).Methods("GET").Name("getAlerts")
 	s.HandleFunc("/silence", application.createSilence).Methods("POST").Name("createSilence")
 	s.HandleFunc("/silences", application.getAllSilences).Methods("GET").Name("getAllSilences")
@@ -306,8 +387,10 @@ func main() {
 	s.HandleFunc("/silence/{id}", application.updateSilence).Methods("POST").Name("updateSilence")
 	s.HandleFunc("/silence/{id}", application.expireSilence).Methods("DELETE").Name("expireSilence")
 
-	r.HandleFunc("/", indexHandler)
-	http.Handle("/", r)
+	router.HandleFunc("/", indexHandler).Name("indexHandler")
+	http.Handle("/", router)
+
+	gob.Register(&Flash{})
 
 	log.Printf("Starting server on port %d\n", *listenAddress)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", *listenAddress), nil)

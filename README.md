@@ -1,5 +1,29 @@
 # alertmanager-maintenance-scheduler
 A maintenance scheduler UI for Prometheus AlertManager
 
-The project in its current status is meant to support a specific feature around the Alertmanager API, and that is to be able to schedule a finite number of repeating silences. 
-The tool is intended to be used via a Web based UI, however development of this UI is in progress. Certain endpoints can still be leveraged to help automate scheduling & expiring silences. 
+The project in its current status is meant to support a specific feature around the Alertmanager API, and that is to be able to schedule a finite number of repeating silences. The tool is intended to be used via its Web based UI.
+
+### Building
+To build simply run:
+```bash
+make build
+```
+
+### Configuration & Running
+The tool relies on a YAML config file to specify the Alertmanager address it is supposed to send requests to:
+```yaml
+---
+alertmanager_api: "http://localhost:9093/api/v2"
+```
+
+It is required to setup the `SESSION_KEY` environment variable with a hash key, that is used authenticate cookie values via HMAC. It is recommended to use an authentication key with 32 or 64 bytes.
+
+```bash
+# define `SESSION_KEY` and run application
+export SESSION_KEY="VL94PPxaM5aHj9lkM0JnFA04HCXmzfwa"
+
+./alertmanager-maintenance-scheduler --config.file=/path/to/config.yml
+
+# alternatively
+SESSION_KEY="VL94PPxaM5aHj9lkM0JnFA04HCXmzfwa" ./alertmanager-maintenance-scheduler --config.file=/path/to/config.yml
+```

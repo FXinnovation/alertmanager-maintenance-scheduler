@@ -123,8 +123,21 @@ func constructSilence(start, end string, request APISilenceRequest) (models.Sile
 
 	silence.CreatedBy = &request.CreatedBy
 	silence.Comment = &request.Comment
-	silence.Matchers = request.Matchers
 
+	var matchers models.Matchers
+	for _, m := range request.Matchers {
+		// avoiding single loop variable, so all pointers won't take the same value of a single matcher
+		local := m
+
+		if m.Name != "" {
+			var matcher models.Matcher
+			matcher.Name = &local.Name
+			matcher.Value = &local.Value
+			matcher.IsRegex = &local.IsRegex
+			matchers = append(matchers, &matcher)
+		}
+	}
+	silence.Matchers = matchers
 	return silence, nil
 }
 
