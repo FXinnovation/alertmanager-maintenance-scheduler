@@ -210,6 +210,11 @@
                 showAlert("End time of Maintenance window must be specified.");
                 return false;
             }
+
+            if (startTime === endTime) {
+                showAlert("End time must be higher than start time.");
+                return false;
+            }
         };
 
 
