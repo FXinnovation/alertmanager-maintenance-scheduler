@@ -211,8 +211,8 @@
                 return false;
             }
 
-            if (startTime === endTime) {
-                showAlert("End time must be higher than start time.");
+            if (startTime === endTime || startTime > endTime) {
+                showAlert("End time must be later than start time.");
                 return false;
             }
 
