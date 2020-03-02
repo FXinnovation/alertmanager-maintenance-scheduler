@@ -16,14 +16,6 @@ The tool relies on a YAML config file to specify the Alertmanager address it is 
 alertmanager_api: "http://localhost:9093/api/v2"
 ```
 
-It is required to setup the `SESSION_KEY` environment variable with a hash key, that is used authenticate cookie values via HMAC. It is recommended to use an authentication key with 32 or 64 bytes.
-
 ```bash
-# define `SESSION_KEY` and run application
-export SESSION_KEY="VL94PPxaM5aHj9lkM0JnFA04HCXmzfwa"
-
 ./alertmanager-maintenance-scheduler --config.file=/path/to/config.yml
-
-# alternatively
-SESSION_KEY="VL94PPxaM5aHj9lkM0JnFA04HCXmzfwa" ./alertmanager-maintenance-scheduler --config.file=/path/to/config.yml
 ```
