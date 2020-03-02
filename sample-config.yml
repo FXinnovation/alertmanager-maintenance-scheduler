@@ -1,2 +1,2 @@
 ---
-alertmanager_api: "http://localhost:9093/api/v2"
+alertmanager_url: "http://localhost:9093/"
