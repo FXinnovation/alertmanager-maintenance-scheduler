@@ -33,7 +33,7 @@ The exporter's Alertmanager API connection can also be configured by defining th
 
 Environment Variable | Description
 ---------------------| -----------
-ALERTMANAGER_URL | URL of the exported alertmanager api (eg: "http://localhost:9093/api/v2")
+ALERTMANAGER_URL | URL of the exported alertmanager api (eg: "http://localhost:9093/")
 
 
 Use -h flag to list available options.
