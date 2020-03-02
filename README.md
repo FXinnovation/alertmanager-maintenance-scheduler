@@ -29,13 +29,20 @@ The tool expects a config file as one of its arguments:
 ./alertmanager-maintenance-scheduler --config.file=/path/to/config.yml
 ```
 
+The exporter's Alertmanager API connection can also be configured by defining the following environment variable(s). If they are present, they will take precedence over the corresponding variables in the config file.
+
+Environment Variable | Description
+---------------------| -----------
+ALERTMANAGER_URL | URL of the exported alertmanager api (eg: "http://localhost:9093/api/v2")
+
+
 Use -h flag to list available options.
 
 ### Configuration & Running
 The tool relies on a YAML config file to specify the Alertmanager address it is supposed to send requests to:
 ```yaml
 ---
-alertmanager_api: "http://localhost:9093/api/v2"
+alertmanager_api: "http://localhost:9093/"
 ```
 
 ```bash
@@ -49,7 +56,7 @@ An example can be found in
 
 Configuration element | Description
 --------------------- | -----------
-alertmanager_api | (Mandatory) URL of the exported alertmanager api (eg: "http://localhost:9093/")
+alertmanager_url | (Mandatory) URL of the exported alertmanager api (eg: "http://localhost:9093/")
 
 ## Testing
 
