@@ -14,6 +14,10 @@ import (
 	"github.com/prometheus/alertmanager/api/v2/models"
 )
 
+const (
+	apiVersion = "/api/v2/"
+)
+
 // AlertmanagerAPI interface to hold api methods
 type AlertmanagerAPI interface {
 	ListAlerts() (models.GettableAlerts, error)
@@ -248,5 +252,6 @@ func (ac *AlertmanagerClient) ExpireSilenceWithID(uuid string) error {
 
 // NewAlertManagerClient creates a client to work with
 func NewAlertManagerClient(apiURL string) *AlertmanagerClient {
-	return &AlertmanagerClient{AlertManagerAPIURL: apiURL}
+	u := apiURL + "/" + apiVersion
+	return &AlertmanagerClient{AlertManagerAPIURL: u}
 }

@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	configFile    = kingpin.Flag("config.file", "Path to config file.").Short('c').Required().String()
+	configFile    = kingpin.Flag("config.file", "Path to config file.").Short('c').Default("config/config.yml").String()
 	listenAddress = kingpin.Flag("web.listen-address", "Address for the application to listen on").Default("8080").Short('p').Int()
 	genericError  = 1
 
@@ -367,7 +367,7 @@ func main() {
 	}
 	application := App{
 		config: appConf,
-		client: NewAlertManagerClient(appConf.AlertmanagerAPI),
+		client: NewAlertManagerClient(appConf.AlertmanagerURL),
 	}
 
 	templates, err = template.ParseGlob("templates/*")

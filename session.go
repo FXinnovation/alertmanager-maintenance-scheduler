@@ -2,14 +2,15 @@ package main
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/gorilla/sessions"
 )
 
 var (
 	cookieName = "ams-session"
-	store      = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+
+	// no heavy encryption until authentication is required
+	store = sessions.NewCookieStore([]byte(""))
 )
 
 type Flash struct {
