@@ -2,10 +2,13 @@ GO    	 := go
 pkgs      = $(shell $(GO) list ./... | grep -v /vendor/)
 arch      = amd64  ## default architecture
 platforms = darwin linux windows
-package   = prometheus-maintenance-scheduler
+package   = alertmanager-maintenance-scheduler
 
 PREFIX                  ?= $(shell pwd)
 BIN_DIR                 ?= $(shell pwd)
+DOCKER_REPO             ?= fxinnovation
+DOCKER_IMAGE_NAME       ?= $(package)
+DOCKER_IMAGE_TAG        ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
 
 all: vet format test build
 
@@ -25,6 +28,10 @@ xbuild: ## cross build executables for all defined platforms
 		echo $$name ;\
 		GOOS=$$platform GOARCH=$(arch) $(GO) build -o $$name . ;\
 	done
+
+docker:
+	@echo ">> building docker image"
+	@docker build -t "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" .
 
 test:
 	@echo ">> running tests.."
