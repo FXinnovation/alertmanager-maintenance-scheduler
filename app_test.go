@@ -553,24 +553,33 @@ func TestRepeat_Valid(t *testing.T) {
 func TestReIndex(t *testing.T) {
 	var cases = []struct {
 		input map[string][]string
-		want  map[string][]string
+		want  []string
 	}{
 		{
 			map[string][]string{
 				"Matchers.0.Name": []string{"name0"}, "Matchers.0.Value": []string{"value0"},
 				"Matchers.2.Name": []string{"name2"}, "Matchers.2.Value": []string{"value2"},
 			},
+			[]string{"Matchers.0.Name", "Matchers.0.Value", "Matchers.1.Name", "Matchers.1.Value"},
+		},
+		{
 			map[string][]string{
 				"Matchers.0.Name": []string{"name0"}, "Matchers.0.Value": []string{"value0"},
-				"Matchers.1.Name": []string{"name2"}, "Matchers.1.Value": []string{"value2"},
+				"Matchers.2.Name": []string{"name2"}, "Matchers.2.Value": []string{"value2"},
+				"Matchers.4.Name": []string{"name4"}, "Matchers.4.Value": []string{"value4"},
 			},
+			[]string{"Matchers.0.Name", "Matchers.0.Value", "Matchers.1.Name",
+				"Matchers.1.Value", "Matchers.2.Name", "Matchers.2.Value"},
 		},
 	}
 
 	for _, c := range cases {
 		got := reIndex(c.input)
-		if !reflect.DeepEqual(got, c.want) {
-			t.Errorf("reIndex doesn't order map as expected\ngot: '%v'\nwant: '%v'", got, c.want)
+		for _, w := range c.want {
+			_, ok := got[w]
+			if !ok {
+				t.Errorf("reIndex doesn't order map as expected\ngot: '%v'\nwant keys: '%v'", got, c.want)
+			}
 		}
 	}
 }
