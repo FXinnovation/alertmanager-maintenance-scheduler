@@ -187,23 +187,78 @@ func addDuration(timestamp, interval string, count int) (string, error) {
 	return next.Format(requestTimeLayout), nil
 }
 
+func reIndex(form map[string][]string) map[string][]string {
+	count := 0
+	o := map[string][]string{}
+
+	for k, v := range form {
+		valueMatch, _ := regexp.MatchString(`Matchers\.\d\.Value`, k)
+		if valueMatch {
+			continue
+		}
+
+		regMatch, _ := regexp.MatchString(`Matchers\.\d\.IsRegex`, k)
+		if regMatch {
+			continue
+		}
+
+		nameMatch, _ := regexp.MatchString(`Matchers\.\d\.Name`, k)
+		if nameMatch {
+			// find original matcher ID
+			r, _ := regexp.Compile(`\d`)
+			matcherID := r.FindString(k)
+
+			// take value of original matcher
+			valueString := fmt.Sprintf("Matchers.%s.Value", matcherID)
+			value := form[valueString]
+
+			// create entry with new ID for matcher value
+			newValueString := fmt.Sprintf("Matchers.%d.Value", count)
+			o[newValueString] = value
+
+			// create entry with new ID for matcher regex
+			regString := fmt.Sprintf("Matchers.%s.IsRegex", matcherID)
+			regValue, ok := form[regString]
+			if ok {
+				newRegString := fmt.Sprintf("Matchers.%d.IsRegex", count)
+				o[newRegString] = regValue
+			}
+
+			// new ID for matcher name
+			k = fmt.Sprintf("Matchers.%d.Name", count)
+			count++
+		}
+		o[k] = v
+	}
+	return o
+}
+
 func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	var silenceRequest APISilenceRequest
 	var decoder = schema.NewDecoder()
 
-	err := r.ParseForm()
+	url, err := router.Get("indexHandler").URL()
 	if err != nil {
-		msg := fmt.Sprintf("unable to parse form: %s", err.Error())
-		sessionAddFlash(w, r, "danger", msg)
+		msg := "internal error: unable to find redirect page"
 		writeError(msg, w)
 		return
 	}
 
-	err = decoder.Decode(&silenceRequest, r.PostForm)
+	err = r.ParseForm()
+	if err != nil {
+		msg := fmt.Sprintf("unable to parse form: %s", err.Error())
+		sessionAddFlash(w, r, "danger", msg)
+		http.Redirect(w, r, url.String(), 302)
+		return
+	}
+
+	ordered := reIndex(r.PostForm)
+
+	err = decoder.Decode(&silenceRequest, ordered)
 	if err != nil {
 		msg := fmt.Sprintf("unable to read silence request: %s", err.Error())
 		sessionAddFlash(w, r, "danger", msg)
-		writeError(msg, w)
+		http.Redirect(w, r, url.String(), 302)
 		return
 	}
 
@@ -211,7 +266,7 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		msg = fmt.Sprintf("silence request is invalid: %s", msg)
 		sessionAddFlash(w, r, "danger", msg)
-		writeError(msg, w)
+		http.Redirect(w, r, url.String(), 302)
 		return
 	}
 
@@ -237,13 +292,6 @@ func (a *App) createSilence(w http.ResponseWriter, r *http.Request) {
 			requestErr++
 			continue
 		}
-	}
-
-	url, err := router.Get("indexHandler").URL()
-	if err != nil {
-		msg := "internal error: unable to find redirect page"
-		writeError(msg, w)
-		return
 	}
 
 	msg = fmt.Sprintf("%d/%d new silences created", silenceRequest.Schedule.Repeat.Count-requestErr, silenceRequest.Schedule.Repeat.Count)
