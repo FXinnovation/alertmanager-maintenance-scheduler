@@ -4,7 +4,10 @@ COPY . .
 RUN make test build
 
 FROM ubuntu:18.04
+
 COPY --from=builder /alertmanager-maintenance-scheduler/alertmanager-maintenance-scheduler /alertmanager-maintenance-scheduler
+COPY --from=builder /alertmanager-maintenance-scheduler/templates/* /templates/
+
 ADD ./resources /resources
 RUN /resources/build && rm -rf /resources
 USER ams
