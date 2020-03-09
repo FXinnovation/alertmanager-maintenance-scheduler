@@ -9,8 +9,9 @@ apt-get install --yes \
 # Install alertmanager-maintenance-scheduler
 useradd -r -d /opt/alertmanager-maintenance-scheduler ams
 
-mkdir -p /opt/alertmanager-maintenance-scheduler
+mkdir -p /opt/alertmanager-maintenance-scheduler/templates/
 mv /alertmanager-maintenance-scheduler /opt/alertmanager-maintenance-scheduler
+mv /templates/* /opt/alertmanager-maintenance-scheduler/templates/
 
 chown -R ams /opt/alertmanager-maintenance-scheduler
 
